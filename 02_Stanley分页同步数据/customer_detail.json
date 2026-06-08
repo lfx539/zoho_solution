@@ -1,0 +1,302 @@
+{
+    "links": [
+        {
+            "rel": "self",
+            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/customer/2102732?expandSubResources=true",
+            "method": "GET"
+        }
+    ],
+    "addressBook": {
+        "links": [
+            {
+                "rel": "self",
+                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/customer/2102732/addressBook",
+                "method": "GET"
+            }
+        ],
+        "items": [
+            {
+                "links": [
+                    {
+                        "rel": "self",
+                        "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/customer/2102732/addressBook/5744308",
+                        "method": "GET"
+                    }
+                ],
+                "addressBookAddress": {
+                    "links": [
+                        {
+                            "rel": "self",
+                            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/customer/2102732/addressBook/5744308/addressBookAddress",
+                            "method": "GET"
+                        }
+                    ],
+                    "addr1": "214-216 Hammond Road",
+                    "addressee": "Rivulis",
+                    "addrPhone": "+61390222114",
+                    "addrText": "Matthew Matin\nRivulis\n214-216 Hammond Road\nDANDENONG SOUTH VIC 3175\nAustralia",
+                    "attention": "Matthew Matin",
+                    "city": "DANDENONG SOUTH",
+                    "country": {
+                        "links": [],
+                        "id": "AU",
+                        "refName": "Australia"
+                    },
+                    "override": false,
+                    "state": "VIC",
+                    "zip": "3175"
+                },
+                "addressBookAddress_text": "Matthew Matin<br>Rivulis<br>214-216 Hammond Road<br>DANDENONG SOUTH VIC 3175<br>Australia",
+                "addressId": "5744308",
+                "defaultBilling": true,
+                "defaultShipping": false,
+                "id": 5744308,
+                "internalId": 5744308,
+                "isResidential": true,
+                "label": "Customer Address Billing"
+            },
+            {
+                "links": [
+                    {
+                        "rel": "self",
+                        "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/customer/2102732/addressBook/5744309",
+                        "method": "GET"
+                    }
+                ],
+                "addressBookAddress": {
+                    "links": [
+                        {
+                            "rel": "self",
+                            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/customer/2102732/addressBook/5744309/addressBookAddress",
+                            "method": "GET"
+                        }
+                    ],
+                    "addr1": "214-216 Hammond Road",
+                    "addressee": "Rivulis",
+                    "addrText": "Matthew Matin\nRivulis\n214-216 Hammond Road\nDANDENONG SOUTH VIC 3175\nAustralia",
+                    "attention": "Matthew Matin",
+                    "city": "DANDENONG SOUTH",
+                    "country": {
+                        "links": [],
+                        "id": "AU",
+                        "refName": "Australia"
+                    },
+                    "override": false,
+                    "state": "VIC",
+                    "zip": "3175"
+                },
+                "addressBookAddress_text": "Matthew Matin<br>Rivulis<br>214-216 Hammond Road<br>DANDENONG SOUTH VIC 3175<br>Australia",
+                "addressId": "5744309",
+                "defaultBilling": false,
+                "defaultShipping": true,
+                "id": 5744309,
+                "internalId": 5744309,
+                "isResidential": false,
+                "label": "Customer Address Shipping"
+            }
+        ],
+        "totalResults": 2
+    },
+    "alcoholRecipientType": {
+        "links": [],
+        "id": "CONSUMER",
+        "refName": "Consumer"
+    },
+    "balance": 0.0,
+    "contactList": {
+        "links": [
+            {
+                "rel": "self",
+                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/customer/2102732/contactList",
+                "method": "GET"
+            }
+        ],
+        "count": 0,
+        "hasMore": false,
+        "items": [],
+        "offset": 0,
+        "totalResults": 0
+    },
+    "creditHoldOverride": {
+        "links": [],
+        "id": "AUTO",
+        "refName": "Auto"
+    },
+    "currency": {
+        "links": [
+            {
+                "rel": "self",
+                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/currency/1",
+                "method": "GET"
+            }
+        ],
+        "id": "1",
+        "refName": "Australian Dollar"
+    },
+    "currencyList": {
+        "links": [
+            {
+                "rel": "self",
+                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/customer/2102732/currencyList",
+                "method": "GET"
+            }
+        ],
+        "items": [
+            {
+                "links": [
+                    {
+                        "rel": "self",
+                        "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/customer/2102732/currencyList/1",
+                        "method": "GET"
+                    }
+                ],
+                "balance": 0.0,
+                "currency": {
+                    "links": [
+                        {
+                            "rel": "self",
+                            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/currency/1",
+                            "method": "GET"
+                        }
+                    ],
+                    "id": "1",
+                    "refName": "Australian Dollar"
+                },
+                "depositBalance": 0.0,
+                "displaySymbol": "£",
+                "overdueBalance": 0.0,
+                "overrideCurrencyFormat": false,
+                "symbolPlacement": {
+                    "links": [],
+                    "id": "1",
+                    "refName": "Before Number"
+                },
+                "unbilledOrders": 0.0
+            }
+        ],
+        "totalResults": 1
+    },
+    "custentity_2663_customer_refund": false,
+    "custentity_2663_direct_debit": false,
+    "custentity_anz_2subsidiary_country": {
+        "links": [],
+        "id": "14",
+        "refName": "Australia"
+    },
+    "custentity_atlas_customer_probability": 100.0,
+    "custentity_c360_entity_order_lead_time": "0",
+    "custentity_esc_last_modified_date": "2026-05-11",
+    "custentity_tbs_to_be_cleansed": false,
+    "custentityhs_integration_embed": "<iframe height=\"600\" width=\"2048\" style=\"max-width:100%;border:none;padding-top:10px\" src=\"https://api.hubspot.com/timeline-embed/v2/redirect/data-sync?appId=226318&email=emma.omeley@rivulis.com&remoteId=6508945&recordId=2102732&recordType=individual_customers&subsidiaryId=1&userEmail=seanren16@gmail.com\" ></iframe>",
+    "dateCreated": "2026-05-11T01:36:00Z",
+    "defaultAddress": "Matthew Matin<br>Rivulis<br>214-216 Hammond Road<br>DANDENONG SOUTH VIC 3175<br>Australia",
+    "depositBalance": 0.0,
+    "email": "emma.omeley@rivulis.com",
+    "emailPreference": {
+        "links": [],
+        "id": "DEFAULT",
+        "refName": "Default"
+    },
+    "emailTransactions": false,
+    "entityId": "emma.omeley@rivulis.com",
+    "entityStatus": {
+        "links": [
+            {
+                "rel": "self",
+                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/customerstatus/13",
+                "method": "GET"
+            }
+        ],
+        "id": "13",
+        "refName": "CUSTOMER-Closed Won"
+    },
+    "faxTransactions": false,
+    "firstName": "Matthew",
+    "groupPricing": {
+        "links": [
+            {
+                "rel": "self",
+                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/customer/2102732/groupPricing",
+                "method": "GET"
+            }
+        ],
+        "items": [],
+        "totalResults": 0
+    },
+    "id": "2102732",
+    "isBudgetApproved": false,
+    "isInactive": false,
+    "isPerson": true,
+    "itemPricing": {
+        "links": [
+            {
+                "rel": "self",
+                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/customer/2102732/itemPricing",
+                "method": "GET"
+            }
+        ],
+        "items": [],
+        "totalResults": 0
+    },
+    "language": {
+        "links": [],
+        "id": "en_AU",
+        "refName": "English (AU)"
+    },
+    "lastModifiedDate": "2026-05-11T01:44:00Z",
+    "lastName": "Matin",
+    "overdueBalance": 0.0,
+    "phone": "+61390222114",
+    "printTransactions": false,
+    "receivablesAccount": {
+        "links": [
+            {
+                "rel": "self",
+                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/account/-10",
+                "method": "GET"
+            }
+        ],
+        "id": "-10",
+        "refName": "Use System Preference"
+    },
+    "salesRep": {
+        "links": [
+            {
+                "rel": "self",
+                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/employee/21707",
+                "method": "GET"
+            }
+        ],
+        "id": "21707",
+        "refName": "Cindy SONG"
+    },
+    "shipComplete": false,
+    "shippingCarrier": {
+        "links": [],
+        "id": "nonups",
+        "refName": "More"
+    },
+    "shippingItem": {
+        "links": [
+            {
+                "rel": "self",
+                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/shipitem/1838",
+                "method": "GET"
+            }
+        ],
+        "id": "1838",
+        "refName": "N/A"
+    },
+    "subsidiary": {
+        "links": [
+            {
+                "rel": "self",
+                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/subsidiary/1",
+                "method": "GET"
+            }
+        ],
+        "id": "1",
+        "refName": "STANLEY PACKAGING GROUP PTY LTD"
+    },
+    "unbilledOrders": 0.0
+}

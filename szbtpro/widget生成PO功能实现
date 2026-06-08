@@ -1,0 +1,55 @@
+我现在要写个新的widget，这个widget是在crm的deal页面加的，在deal成单概率达到75%的时候，点击这个按钮：
+询问“Generate PO to China”，选择yes之后，
+需要选择“Monthly Sea Freight”,"Monthly Air Freight","Expedited Air Freight",以及选择“End Customer”,"BP Warehouse"以及“CM Office”, 如果选择“MONTHLY SEA FREIGHT”和“EXPEDITED AIR FREIGHT”， 可以选所有目的地；如果选“MONTLY AIR FREIGHT”，目的地只能选“BP WAREHOUSE”或者“CM Office”
+
+同时还需要填写，
+a) Deal Name, 需要是个deal查找字段
+b) Purchase Product, 弹出product in interested里的product进行选择
+c) Special Modification, if any (手动输入，非必填)
+d)	Estimated PO Time(必选项，选择具体日期，不用默认值)
+e)	Latest Arrival Date to Destination(必填项, 规则写在下面）
+f)	Remarks Section （手动输入，非必填）
+
+如果选择了送到END CUSTOMER，那在上面abcdef的基础上，再要求填入CUSTOMER ADDRESS（字段为STREET, STATE, COUNTRY, ZIP CODE，全部必填项）, CUSTOMER CONTACT 和CUSTOMER ACCOUNT（全部为必选项，这两个为查找字段，需要从 CONTACTS和ACCOUNTS选择对应的关联)
+
+如果选择了MONTHLY SEA FREIGHT，那上面e的LATEST ARRIVAL DATE TO DESTINATION默认放置为生成PO当天的60天以后的日期（不可修改）。加个tips“如果不接受，需要提示他们回头改选空运（英文）”
+
+
+如果选择MONTHLY AIR FREIGHT，那上面e的LATEST ARRIVAL DATE TO DESTINATION默认放置为生成PO当天的35天以后的日期（不可修改）。加个tips“如果不接受，需要提示他们回头改选为EXPEDIATED AIR FREIGHT（英文）“
+
+如果选择EXPEDITED AIR FREIGHT，LATEST ARRIVAL DATE 自己选日期，没有默认值
+
+
+
+
+打包命令
+
+npm run build:pack:po
+输出文件：packhelp/dist/generatePO.zip (235 KB)
+
+功能说明
+触发条件：Deal Probability >= 75%
+
+Freight Type 与 Destination 联动：
+
+Monthly Sea Freight / Expedited Air Freight → 所有目的地
+Monthly Air Freight → 仅 BP Warehouse / CM Office
+Latest Arrival Date 自动计算：
+
+Monthly Sea Freight：当天 + 60 天（只读）
+Monthly Air Freight：当天 + 35 天（只读）
+Expedited Air Freight：手动选择
+End Customer 额外字段：选择 End Customer 时显示地址和联系信息输入
+
+部署前准备
+1. Zoho CRM 配置连接
+在 Zoho CRM 中创建到 Zoho Books 的连接：
+
+设置 → 连接 → 创建连接
+连接名称：zoho_books
+连接类型：Zoho Services → Zoho Books
+2. Zoho Books 自定义字段（可选）
+如需在 PO 中存储 Widget 数据，需在 Books 中创建自定义字段（见 README.md）
+
+3. 部署 Widget
+上传 packhelp/dist/generatePO.zip 到 Zoho CRM，配置为 Deals 模块的按钮组件。

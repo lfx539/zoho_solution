@@ -1,0 +1,73 @@
+我现在想实现一个功能，就是把product_interest转化成product_purchased功能，我想的方案是在额外做一个widget, 我点击一个转化按钮，然后弹出一个框，页面上显示所有的product interest in,然后前面带上复选框可以勾选，然后end user勾选的product自动转化成product purchased（Products_Purchased）模块里的item，Name 字段是必填，先随便写一个把，关联Product_Name到产品模块，Account_Name到Accounts模块，Deal_Name到Deals模块， 同时加入到之前生成的对应case里的product purchased，按照之前的逻辑，这个要单独开个文件，不要影响现在的文件，因为是新加的功能，还有什么问题吗
+
+/*--------------------------*/
+
+1. Product Interest 模块
+API name 是 Product_Interest 吗？
+里面有哪些关键字段需要映射到 Products_Purchased？
+不是的，这个是deals模块的Product_Interested_deal子表，每行对应的产品模块查找字段Product_Name，每一行产品，需要在Products_Purchased里创建一条item， Product_Name对应Products_Purchased的Product_Name字段，Name、Account_Name、Deal_Name从deals里获取
+
+2. Products_Purchased 模块
+API name 确认是 Products_Purchased？
+除了 Name、Product_Name、Account_Name、Deal_Name，还有其他必填字段吗？
+
+对的
+
+3. 触发场景
+这个widget 是在哪个模块的详情页触发？（Deal / Account / Case？）
+Product Interest 是通过什么关联到当前记录的？（Lookup 字段名？）
+这个widget在deal页面触发，Product Interest是deal的子模块
+
+4. Case 关联
+你提到的"对应 case 里的 product purchased"，是指：
+Case 模块有一个 Lookup/Subform 关联 Products_Purchased？
+还是需要创建 Case 并关联？
+Case 是已经存在的，还是需要新建？
+
+case模块api name:Case_Module
+对应到case里的Product_Purchased子表，子模块产品lookup字段名称Product_Name,需要查找case模块是否已经有对应deal（api name:Deal, lookup字段）信息的case存在，如果已有，更新这个case的子表信息，没有的话就新建
+
+5.数据来源
+Product Interest 数据从哪里获取？
+当前记录（如 Deal）的 Subform？
+还是独立的 Product_Interest 模块查询？
+筛选条件是什么？（如：未转换的、特定 Account/Deal 下的）
+
+Product Interest 数据从deal子表获取，子表api name:Product_Interested_deal, 弹框的数据是子表的所有行数的数据，前面带着复选框，同步到product purchased的item和到case 的子表Product_Purchased的数据，都是在页面上勾选的数据
+
+
+/*--------------------------*/
+1. Product_Interested_deal 子表结构
+子表里有哪些字段？除了 Product_Name 还有其他需要映射的字段吗？没有，先对应这个即可
+每行有唯一 ID 吗？（用于标记已转换） 需要你自己获取
+
+2. Case_Module 创建
+Case 新建时，Name 或 Subject 字段是必填吗？是的，这个按之前逻辑即可，读取之前创建case的代码
+除了 Deal lookup，还有其他必填字段吗？还有Lead，获取leadIdCopy字段，放到Lead lookup字段里
+Case 的子表 API name 确认是 Product_Purchased 吗？ 确认
+
+3.重复转换检查
+是否需要防止重复转换？（同一个 Product Interest 行多次点击转换）需要，那添加个标记来记录，字段API name, IsConvertedToProductPurchased,类型是checkbox
+如果是，Case 子表里是否需要标记来源？转换一次之后deal就不许再转换了，所以我觉得可以是通过deal里添加个字段标记是否已转换，如果转换过就不能在转换，可以弹窗提示，同时，deals子表Product_Interested_deal里每行有个字段叫IsOrderPlaced，需要根据弹框页勾选来同步
+
+4. Accounts 关联
+Deal 的 Account lookup 字段名是 Account_Name 吗？（与之前代码一致） 是的
+
+5. UI 交互
+弹框里需要显示哪些列？（产品名称肯定要，还需要数量、备注等吗？）先支架产品名称即可
+转换成功后是关闭弹框还是有其他提示？跟之前一样弹出成功即可，点击后关闭
+
+
+/*--------------------------*/
+需求确认总结
+项目	内容
+触发位置	Deal 详情页
+数据来源	Deal 子表 Product_Interested_deal
+创建目标	Products_Purchased 模块 + Case_Module 的 Product_Purchased 子表
+防重复	Deal 字段 IsConvertedToProductPurchased (checkbox)
+子表标记	IsOrderPlaced 字段同步勾选状态
+Case 新建必填	Name、Deal、Lead（从 leadIdCopy 获取）
+
+
+
+

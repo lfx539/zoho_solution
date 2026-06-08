@@ -1,0 +1,44 @@
+{
+  "name": "xatlzcrm",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "lint": "eslint .",
+    "preview": "vite preview",
+    "build:pack": "npm run build && rm -rf packhelp/app/* && rm -f packhelp/dist/conv_*.zip && cp -r dist/* packhelp/app/ && rm -f packhelp/app/indexProduct.html packhelp/app/indexPO.html && cd packhelp && zet pack && ts=$(date +%Y%m%d%H%M%S) && mv dist/packhelp.zip dist/conv_$ts.zip",
+    "build:pack:product": "npm run build && rm -rf packhelp/app/* && rm -f packhelp/dist/convProduct_*.zip && cp -r dist/* packhelp/app/ && rm -f packhelp/app/index.html packhelp/app/indexPO.html && mv packhelp/app/indexProduct.html packhelp/app/index.html && cd packhelp && zet pack && ts=$(date +%Y%m%d%H%M%S) && mv dist/packhelp.zip dist/convProduct_$ts.zip",
+    "build:pack:po": "npm run build && rm -rf packhelp/app/* && rm -f packhelp/dist/generatePO_*.zip && cp -r dist/* packhelp/app/ && rm -f packhelp/app/index.html packhelp/app/indexProduct.html && mv packhelp/app/indexPO.html packhelp/app/index.html && cd packhelp && zet pack && ts=$(date +%Y%m%d%H%M%S) && mv dist/packhelp.zip dist/generatePO_$ts.zip",
+    "build:pack:updatepo": "npm run build && rm -rf packhelp/app/* && rm -f packhelp/dist/updatePOFields_*.zip && cp -r dist/* packhelp/app/ && rm -f packhelp/app/index.html packhelp/app/indexProduct.html packhelp/app/indexPO.html && mv packhelp/app/indexUpdatePO.html packhelp/app/index.html && cd packhelp && zet pack && ts=$(date +%Y%m%d%H%M%S) && mv dist/packhelp.zip dist/updatePOFields_$ts.zip",
+    "build:pack:createcase": "npm run build && rm -rf packhelp/app/* && rm -f packhelp/dist/createCaseFromLead_*.zip && cp -r dist/* packhelp/app/ && rm -f packhelp/app/index.html packhelp/app/indexProduct.html packhelp/app/indexPO.html packhelp/app/indexUpdatePO.html && mv packhelp/app/indexCreateCase.html packhelp/app/index.html && cd packhelp && zet pack && ts=$(date +%Y%m%d%H%M%S) && mv dist/packhelp.zip dist/createCaseFromLead_$ts.zip",
+    "build:pack:createcasefromdeal": "npm run build && rm -rf packhelp/app/* && rm -f packhelp/dist/createCaseFromDeal_*.zip && cp -r dist/* packhelp/app/ && rm -f packhelp/app/index.html packhelp/app/indexProduct.html packhelp/app/indexPO.html packhelp/app/indexUpdatePO.html packhelp/app/indexCreateCase.html && mv packhelp/app/indexCreateCaseFromDeal.html packhelp/app/index.html && cd packhelp && zet pack && ts=$(date +%Y%m%d%H%M%S) && mv dist/packhelp.zip dist/createCaseFromDeal_$ts.zip"
+  },
+  "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.0",
+    "@fontsource/roboto": "^5.1.1",
+    "@mui/icons-material": "^6.4.0",
+    "@mui/material": "^6.4.0",
+    "@mui/styled-engine-sc": "^6.4.0",
+    "@mui/x-date-pickers": "^7.23.6",
+    "dayjs": "^1.11.13",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "styled-components": "^6.1.14",
+    "sweetalert2": "^11.15.10"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.17.0",
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "@vitejs/plugin-react": "^4.3.4",
+    "eslint": "^9.17.0",
+    "eslint-plugin-react": "^7.37.2",
+    "eslint-plugin-react-hooks": "^5.0.0",
+    "eslint-plugin-react-refresh": "^0.4.16",
+    "globals": "^15.14.0",
+    "vite": "^6.0.5"
+  }
+}

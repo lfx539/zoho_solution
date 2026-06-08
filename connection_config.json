@@ -1,0 +1,19 @@
+{
+  "name": "zoho_books_connection",
+  "description": "Zoho CRM 到 Zoho Books 连接",
+  "services": [
+    {
+      "service": "ZohoBooks",
+      "scopes": [
+        "ZohoBooks.fullaccess.all"
+      ]
+    },
+    {
+      "service": "ZohoCRM",
+      "scopes": [
+        "ZohoCRM.modules.all"
+      ]
+    }
+  ],
+  "notes": "在 Zoho CRM 中创建连接时使用:\n1. 进入设置 > 扩展 > API > 连接\n2. 点击创建新连接\n3. 选择 Zoho Books 服务\n4. 授权并保存\n5. 将连接名称填入 crm_to_books_button.zs 中的 connectionName 变量"
+}
