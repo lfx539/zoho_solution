@@ -1,0 +1,271 @@
+{
+    "links": [
+        {
+            "rel": "self",
+            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/vendorcredit/495471?expandSubResources=true",
+            "method": "GET"
+        }
+    ],
+    "applied": 88.0,
+    "apply": {
+        "links": [
+            {
+                "rel": "self",
+                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/vendorcredit/495471/apply",
+                "method": "GET"
+            }
+        ],
+        "items": [
+            {
+                "links": [
+                    {
+                        "rel": "self",
+                        "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/vendorcredit/495471/apply/doc=405111,line=0",
+                        "method": "GET"
+                    }
+                ],
+                "amount": 88.0,
+                "apply": true,
+                "applyDate": "2023-04-30",
+                "createdFrom": "392847",
+                "currency": "Australian Dollar",
+                "doc": {
+                    "links": [],
+                    "id": "405111",
+                    "refName": "405111"
+                },
+                "due": 88.0,
+                "line": 0,
+                "refNum": "00026049",
+                "total": 7235.01,
+                "type": "Bill"
+            }
+        ],
+        "totalResults": 1
+    },
+    "billAddress": "The UBEECO Group Pty Ltd<br>206-208 Lorimer Street<br>Port Melbourne VIC 3207<br>Australia",
+    "billingAddress": {
+        "links": [
+            {
+                "rel": "self",
+                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/vendorcredit/495471/billingAddress",
+                "method": "GET"
+            }
+        ],
+        "addr1": "206-208 Lorimer Street",
+        "addressee": "The UBEECO Group Pty Ltd",
+        "addrText": "The UBEECO Group Pty Ltd\n206-208 Lorimer Street\nPort Melbourne VIC 3207\nAustralia",
+        "city": "Port Melbourne",
+        "country": {
+            "links": [],
+            "id": "AU",
+            "refName": "Australia"
+        },
+        "override": false,
+        "state": "VIC",
+        "zip": "3207"
+    },
+    "billingAddress_text": "The UBEECO Group Pty Ltd<br>206-208 Lorimer Street<br>Port Melbourne VIC 3207<br>Australia",
+    "createdDate": "2023-04-26T01:12:00Z",
+    "currency": {
+        "links": [
+            {
+                "rel": "self",
+                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/currency/1",
+                "method": "GET"
+            }
+        ],
+        "id": "1",
+        "refName": "Australian Dollar"
+    },
+    "custbody_anz_4disputed_invoice": false,
+    "custbody_anz_7supply_chain": false,
+    "custbody_anz_credit_card_pymt": false,
+    "custbody_anz_disputed_trans": false,
+    "custbody_anz_exclude_from_tcp": false,
+    "custbody_anz_grant_payment_type": false,
+    "custbody_anz_include_in_tpar": false,
+    "custbody_anz_peppol_einv_enabled": false,
+    "custbody_anz_rcti": false,
+    "custbody_anz_txn_tpar_eligible": false,
+    "custbody_atlas_no_hdn": {
+        "links": [
+            {
+                "rel": "self",
+                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/customlist_atlas_appr_by_creator/2",
+                "method": "GET"
+            }
+        ],
+        "id": "2",
+        "refName": "No"
+    },
+    "custbody_atlas_yes_hdn": {
+        "links": [
+            {
+                "rel": "self",
+                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/customlist_atlas_appr_by_creator/1",
+                "method": "GET"
+            }
+        ],
+        "id": "1",
+        "refName": "Yes"
+    },
+    "custbody_cash_register": false,
+    "custbody_icsjg_child_jnrls": {
+        "links": [
+            {
+                "rel": "self",
+                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/vendorcredit/495471/custbody_icsjg_child_jnrls",
+                "method": "GET"
+            }
+        ],
+        "count": 0,
+        "hasMore": false,
+        "items": [],
+        "offset": 0,
+        "totalResults": 0
+    },
+    "custbody_nondeductible_processed": false,
+    "custbody_nondeductible_ref_tran": {
+        "links": [
+            {
+                "rel": "self",
+                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/vendorcredit/495471/custbody_nondeductible_ref_tran",
+                "method": "GET"
+            }
+        ],
+        "count": 0,
+        "hasMore": false,
+        "items": [],
+        "offset": 0,
+        "totalResults": 0
+    },
+    "custbody_pr_off_payroll": false,
+    "custbody_report_timestamp": "25/4/2023 18:11:57",
+    "custbody_sii_article_72_73": false,
+    "custbody_sii_not_reported_in_time": false,
+    "custbody_tbs_total_searchable": "88",
+    "entity": {
+        "links": [
+            {
+                "rel": "self",
+                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/vendor/25619",
+                "method": "GET"
+            }
+        ],
+        "id": "25619",
+        "refName": "J.C Gilmores"
+    },
+    "exchangeRate": 1.0,
+    "excludeFromGLNumbering": false,
+    "expense": {
+        "links": [
+            {
+                "rel": "self",
+                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/vendorcredit/495471/expense",
+                "method": "GET"
+            }
+        ],
+        "items": [
+            {
+                "links": [
+                    {
+                        "rel": "self",
+                        "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/vendorcredit/495471/expense/1",
+                        "method": "GET"
+                    }
+                ],
+                "account": {
+                    "links": [
+                        {
+                            "rel": "self",
+                            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/account/226",
+                            "method": "GET"
+                        }
+                    ],
+                    "id": "226",
+                    "refName": "54000 Delivery Expense"
+                },
+                "amount": 80.0,
+                "grossAmt": 88.0,
+                "isBillable": false,
+                "line": 1,
+                "location": {
+                    "links": [
+                        {
+                            "rel": "self",
+                            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/location/1",
+                            "method": "GET"
+                        }
+                    ],
+                    "id": "1",
+                    "refName": "1"
+                },
+                "tax1Amt": 8.0,
+                "taxCode": {
+                    "links": [],
+                    "id": "7",
+                    "refName": "GST:TS-AU"
+                },
+                "taxRate1": 10.0
+            }
+        ],
+        "totalResults": 1
+    },
+    "id": "495471",
+    "item": {
+        "links": [
+            {
+                "rel": "self",
+                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/vendorcredit/495471/item",
+                "method": "GET"
+            }
+        ],
+        "items": [],
+        "totalResults": 0
+    },
+    "lastModifiedDate": "2023-04-26T01:12:00Z",
+    "location": {
+        "links": [
+            {
+                "rel": "self",
+                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/location/1",
+                "method": "GET"
+            }
+        ],
+        "id": "1",
+        "refName": "VIC Main Warehouse"
+    },
+    "postingPeriod": {
+        "links": [
+            {
+                "rel": "self",
+                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/accountingperiod/132",
+                "method": "GET"
+            }
+        ],
+        "id": "132",
+        "refName": "Apr 2023"
+    },
+    "prevDate": "2023-04-26",
+    "subsidiary": {
+        "links": [
+            {
+                "rel": "self",
+                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/subsidiary/1",
+                "method": "GET"
+            }
+        ],
+        "id": "1",
+        "refName": "STANLEY PACKAGING GROUP PTY LTD"
+    },
+    "taxTotal": 8.0,
+    "toBePrinted": false,
+    "total": 88.0,
+    "tranDate": "2023-04-26",
+    "tranId": "00027424",
+    "transactionNumber": "VENDCRED10",
+    "unapplied": 0.0,
+    "userTotal": 88.0,
+    "vatRegNum": "59 151 799 781"
+}

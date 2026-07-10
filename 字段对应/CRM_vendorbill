@@ -1,0 +1,164 @@
+Approval Status	
+Approval_Status
+Single Line	
+Balance	
+Balance
+Decimal	
+Bill Total	
+Bill_Total
+Decimal	
+Billing City	
+Billing_City
+Single Line	
+Billing Code	
+Billing_Code
+Single Line	
+Billing Country	
+Billing_Country
+Single Line	
+Billing State	
+Billing_State
+Single Line	
+Billing Street	
+Billing_Street
+Single Line	
+Connected To	
+Connected_To__s
+MultiModuleLookup	
+Created By	
+Created_By
+Single Line	
+Date Received	
+Date_Received
+Date	
+Due Date	
+Due_Date
+Date	
+Email	
+Email
+Email	
+Email Opt Out	
+Email_Opt_Out
+Boolean	
+Expenses	
+Expenses
+Subform	
+Grand Total	
+Grand_Total
+Formula	
+GST Amt	
+GST_Amt
+Formula	
+Location	
+Location
+Single Line	
+Memo	
+Memo
+Single Line	
+Modified By	
+Modified_By
+Single Line	
+Netsuite Id	
+Netsuite_Id
+Single Line	
+Posting Period	
+Posting_Period
+Pick List	
+Profile Image	
+Record_Image
+VendorBill Image	
+Purchase Items Bill	
+Purchase_Items_Bill
+Subform	
+Ref Number	
+Ref_Number
+Single Line	
+Secondary Email	
+Secondary_Email
+Email	
+Shipping Cost	
+Shipping_Cost
+Currency	
+Status	
+Status
+Single Line	
+Sub Total	
+Sub_Total
+Formula	
+Tag	
+Tag
+Single Line	
+Tax	
+Tax
+Decimal	
+Total GST	
+Total_GST
+Formula	
+Vendor	
+Vendor
+Lookup	
+VendorBill Name	
+Name
+Single Line	
+VendorBill Owner	
+Owner
+Lookup	
+Expenses
+Account	
+Account
+Single Line	
+Amount	
+Amount
+Currency	
+Created By	
+Created_By
+Single Line	
+GST	
+GST
+Formula	
+GST Code	
+GST_Code
+Pick List	
+isBillable	
+isBillable
+Boolean	
+Location	
+Location
+Pick List	
+Memo	
+Memo
+Single Line	
+Purchase Items Bill
+Amount	
+Amount
+Formula	
+Created By	
+Created_By
+Single Line	
+GST	
+GST
+Formula	
+GST Code	
+GST_Code
+Pick List	
+Product Description	
+Product_Description
+Single Line	
+Product Name	
+Product_Name
+Lookup	
+Quantity	
+Quantity
+Number	
+Rate	
+Rate
+Currency	
+STotal	
+STotal
+Currency	
+Total	
+Total
+Formula	
+Units	
+Units
+Pick List	

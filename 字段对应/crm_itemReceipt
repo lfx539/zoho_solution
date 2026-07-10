@@ -1,0 +1,106 @@
+Class	
+Class
+Single Line	
+Connected To	
+Connected_To__s
+MultiModuleLookup	
+Created By	
+Created_By
+Single Line	
+Currency Type	
+Currency_Type
+Single Line	
+Email	
+Email
+Email	
+Email Opt Out	
+Email_Opt_Out
+Boolean	
+ExchangeRate	
+ExchangeRate
+Decimal	
+ItemReceipt Name	
+Name
+Single Line	
+ItemReceipt Owner	
+Owner
+Lookup	
+Location	
+Location
+Single Line	
+Modified By	
+Modified_By
+Single Line	
+Netsuite Id	
+Netsuite_Id
+Single Line	
+PO Number	
+PO_Number
+Lookup	
+Posting Period	
+Posting_Period
+Pick List	
+Profile Image	
+Record_Image
+ItemReceipt Image	
+Receipt Date	
+Receipt_Date
+Date	
+Receipt Items	
+Receipt_Items
+Subform	
+Secondary Email	
+Secondary_Email
+Email	
+Tag	
+Tag
+Single Line	
+Tran Date	
+Tran_Date
+Date	
+Transaction Number	
+Transaction_Number
+Single Line	
+Vendor Name	
+Vendor_Name
+Lookup	
+Receipt Items
+Amount	
+Amount
+Formula	
+Bill Variance Status	
+Status
+Single Line	
+Created By	
+Created_By
+Single Line	
+Item Name	
+Item_Name
+Single Line	
+Item Type	
+Item_Type
+Single Line	
+Location	
+Location
+Single Line	
+On Hand	
+On_Hand
+Decimal	
+Order Line	
+Order_Line
+Number	
+Product Description	
+Product_Description
+Single Line	
+Product Name	
+Product_Name
+Lookup	
+Quantity	
+Quantity
+Number	
+Rate	
+Rate
+Currency	
+Units	
+Units
+Pick List

@@ -1,0 +1,2234 @@
+{
+    "links": [
+        {
+            "rel": "self",
+            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/purchaseorder/1887558?expandSubResources=true",
+            "method": "GET"
+        }
+    ],
+    "balance": 0,
+    "billAddress": "Shenzhen Qihang Sheng Packaging Products Co., Ltd<br>89 DONGLONGHU LU<br>LONGGANGQU  <br>China",
+    "billingAddress": {
+        "links": [
+            {
+                "rel": "self",
+                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/purchaseorder/1887558/billingAddress",
+                "method": "GET"
+            }
+        ],
+        "addr1": "89 DONGLONGHU LU",
+        "addressee": "Shenzhen Qihang Sheng Packaging Products Co., Ltd",
+        "addrText": "Shenzhen Qihang Sheng Packaging Products Co., Ltd\n89 DONGLONGHU LU\nLONGGANGQU  \nChina",
+        "city": "LONGGANGQU",
+        "country": {
+            "links": [],
+            "id": "CN",
+            "refName": "China"
+        },
+        "override": false
+    },
+    "billingAddress_text": "Shenzhen Qihang Sheng Packaging Products Co., Ltd<br>89 DONGLONGHU LU<br>LONGGANGQU  <br>China",
+    "createdDate": "2024-10-12T11:25:00Z",
+    "currency": {
+        "links": [
+            {
+                "rel": "self",
+                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/currency/1",
+                "method": "GET"
+            }
+        ],
+        "id": "1",
+        "refName": "Australian Dollar"
+    },
+    "custbody_anz_4disputed_invoice": false,
+    "custbody_anz_7supply_chain": false,
+    "custbody_anz_credit_card_pymt": false,
+    "custbody_anz_disputed_trans": false,
+    "custbody_anz_exclude_from_tcp": false,
+    "custbody_anz_grant_payment_type": false,
+    "custbody_anz_include_in_tpar": false,
+    "custbody_anz_peppol_einv_enabled": false,
+    "custbody_anz_rcti": false,
+    "custbody_anz_txn_tpar_eligible": false,
+    "custbody_atlas_no_hdn": {
+        "links": [
+            {
+                "rel": "self",
+                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/customlist_atlas_appr_by_creator/2",
+                "method": "GET"
+            }
+        ],
+        "id": "2",
+        "refName": "No"
+    },
+    "custbody_atlas_yes_hdn": {
+        "links": [
+            {
+                "rel": "self",
+                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/customlist_atlas_appr_by_creator/1",
+                "method": "GET"
+            }
+        ],
+        "id": "1",
+        "refName": "Yes"
+    },
+    "custbody_cash_register": false,
+    "custbody_icsjg_child_jnrls": {
+        "links": [
+            {
+                "rel": "self",
+                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/purchaseorder/1887558/custbody_icsjg_child_jnrls",
+                "method": "GET"
+            }
+        ],
+        "count": 0,
+        "hasMore": false,
+        "items": [],
+        "offset": 0,
+        "totalResults": 0
+    },
+    "custbody_nondeductible_processed": false,
+    "custbody_nondeductible_ref_tran": {
+        "links": [
+            {
+                "rel": "self",
+                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/purchaseorder/1887558/custbody_nondeductible_ref_tran",
+                "method": "GET"
+            }
+        ],
+        "count": 0,
+        "hasMore": false,
+        "items": [],
+        "offset": 0,
+        "totalResults": 0
+    },
+    "custbody_pr_off_payroll": false,
+    "custbody_report_timestamp": "12/10/2024 3:38:17",
+    "custbody_sii_article_72_73": false,
+    "custbody_sii_not_reported_in_time": false,
+    "custbody_stc_amount_after_discount": 43152.08,
+    "custbody_stc_tax_after_discount": 0.0,
+    "custbody_stc_total_after_discount": 43152.08,
+    "custbody_tbs_total_searchable": "43152.08",
+    "email": "442674939@qq.com",
+    "entity": {
+        "links": [
+            {
+                "rel": "self",
+                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/vendor/25618",
+                "method": "GET"
+            }
+        ],
+        "id": "25618",
+        "refName": "Shenzhen Qihang Sheng Packaging Products Co., Ltd"
+    },
+    "exchangeRate": 1.0,
+    "expense": {
+        "links": [
+            {
+                "rel": "self",
+                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/purchaseorder/1887558/expense",
+                "method": "GET"
+            }
+        ],
+        "items": [],
+        "totalResults": 0
+    },
+    "id": "1887558",
+    "item": {
+        "links": [
+            {
+                "rel": "self",
+                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/purchaseorder/1887558/item",
+                "method": "GET"
+            }
+        ],
+        "items": [
+            {
+                "links": [
+                    {
+                        "rel": "self",
+                        "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/purchaseorder/1887558/item/46",
+                        "method": "GET"
+                    }
+                ],
+                "amount": 1004.48,
+                "class": {
+                    "links": [
+                        {
+                            "rel": "self",
+                            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/classification/3",
+                            "method": "GET"
+                        }
+                    ],
+                    "id": "3",
+                    "refName": "Office Supplies"
+                },
+                "custcol_15529_eft_enabled": false,
+                "custcol_2663_isperson": false,
+                "custcol_atlas_promise_date": "2024-11-15",
+                "custcol_statistical_value_base_curr": 0.0,
+                "custcol_tbs_qty_on_order": 25.0,
+                "description": "Digital Platform Scales Capacity 300KG",
+                "expectedReceiptDate": "2024-11-15",
+                "grossAmt": 1004.48,
+                "inventoryDetail": {
+                    "links": [
+                        {
+                            "rel": "self",
+                            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/purchaseorder/1887558/item/46/inventoryDetail",
+                            "method": "GET"
+                        }
+                    ],
+                    "inventoryAssignment": {
+                        "links": [
+                            {
+                                "rel": "self",
+                                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/purchaseorder/1887558/item/46/inventoryDetail/inventoryAssignment",
+                                "method": "GET"
+                            }
+                        ],
+                        "items": [],
+                        "totalResults": 0
+                    }
+                },
+                "isBillable": false,
+                "isClosed": false,
+                "isOpen": false,
+                "item": {
+                    "links": [
+                        {
+                            "rel": "self",
+                            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/inventoryitem/2005",
+                            "method": "GET"
+                        }
+                    ],
+                    "id": "2005",
+                    "refName": "Tools : DPSCALES300KG"
+                },
+                "itemType": {
+                    "links": [],
+                    "id": "InvtPart",
+                    "refName": "InvtPart"
+                },
+                "leadTime": 36,
+                "line": 46,
+                "linked": true,
+                "marginal": false,
+                "printItems": false,
+                "quantity": 1.0,
+                "quantityAvailable": 0.64,
+                "quantityBilled": 1.0,
+                "quantityOnHand": 0.64,
+                "quantityReceived": 1.0,
+                "rate": 1004.48,
+                "tax1Amt": 0.0,
+                "taxCode": {
+                    "links": [],
+                    "id": "17",
+                    "refName": "GST:NA-AU"
+                },
+                "taxRate1": 0.0,
+                "units": "4"
+            },
+            {
+                "links": [
+                    {
+                        "rel": "self",
+                        "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/purchaseorder/1887558/item/47",
+                        "method": "GET"
+                    }
+                ],
+                "amount": 769.39,
+                "class": {
+                    "links": [
+                        {
+                            "rel": "self",
+                            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/classification/3",
+                            "method": "GET"
+                        }
+                    ],
+                    "id": "3",
+                    "refName": "Office Supplies"
+                },
+                "custcol_15529_eft_enabled": false,
+                "custcol_2663_isperson": false,
+                "custcol_atlas_promise_date": "2024-11-27",
+                "custcol_statistical_value_base_curr": 0.0,
+                "custcol_tbs_qty_on_order": 50.0,
+                "description": "RAN NATURAL RAFFIA  HANK 100/CTN",
+                "expectedReceiptDate": "2024-11-27",
+                "grossAmt": 769.39,
+                "inventoryDetail": {
+                    "links": [
+                        {
+                            "rel": "self",
+                            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/purchaseorder/1887558/item/47/inventoryDetail",
+                            "method": "GET"
+                        }
+                    ],
+                    "inventoryAssignment": {
+                        "links": [
+                            {
+                                "rel": "self",
+                                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/purchaseorder/1887558/item/47/inventoryDetail/inventoryAssignment",
+                                "method": "GET"
+                            }
+                        ],
+                        "items": [],
+                        "totalResults": 0
+                    }
+                },
+                "isBillable": false,
+                "isClosed": false,
+                "isOpen": false,
+                "item": {
+                    "links": [
+                        {
+                            "rel": "self",
+                            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/inventoryitem/498",
+                            "method": "GET"
+                        }
+                    ],
+                    "id": "498",
+                    "refName": "RAFFIA : RAFNAT"
+                },
+                "itemType": {
+                    "links": [],
+                    "id": "InvtPart",
+                    "refName": "InvtPart"
+                },
+                "leadTime": 36,
+                "line": 47,
+                "linked": true,
+                "marginal": false,
+                "printItems": false,
+                "quantity": 1.0,
+                "quantityAvailable": 0.83,
+                "quantityBilled": 1.0,
+                "quantityOnHand": 0.83,
+                "quantityReceived": 1.0,
+                "rate": 769.39,
+                "tax1Amt": 0.0,
+                "taxCode": {
+                    "links": [],
+                    "id": "17",
+                    "refName": "GST:NA-AU"
+                },
+                "taxRate1": 0.0,
+                "units": "6"
+            },
+            {
+                "links": [
+                    {
+                        "rel": "self",
+                        "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/purchaseorder/1887558/item/3",
+                        "method": "GET"
+                    }
+                ],
+                "amount": 4936.94,
+                "class": {
+                    "links": [
+                        {
+                            "rel": "self",
+                            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/classification/2",
+                            "method": "GET"
+                        }
+                    ],
+                    "id": "2",
+                    "refName": "Industrial Packaging"
+                },
+                "custcol_15529_eft_enabled": false,
+                "custcol_2663_isperson": false,
+                "custcol_atlas_promise_date": "2024-11-14",
+                "custcol_statistical_value_base_curr": 0.0,
+                "custcol_tbs_qty_on_order": 0.0,
+                "description": "Clear Machine Stretch Wrap Film 500mm 15kg 300% Stretch 23um",
+                "expectedReceiptDate": "2024-11-14",
+                "grossAmt": 4936.94,
+                "inventoryDetail": {
+                    "links": [
+                        {
+                            "rel": "self",
+                            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/purchaseorder/1887558/item/3/inventoryDetail",
+                            "method": "GET"
+                        }
+                    ],
+                    "inventoryAssignment": {
+                        "links": [
+                            {
+                                "rel": "self",
+                                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/purchaseorder/1887558/item/3/inventoryDetail/inventoryAssignment",
+                                "method": "GET"
+                            }
+                        ],
+                        "items": [],
+                        "totalResults": 0
+                    }
+                },
+                "isBillable": false,
+                "isClosed": false,
+                "isOpen": false,
+                "item": {
+                    "links": [
+                        {
+                            "rel": "self",
+                            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/inventoryitem/1790",
+                            "method": "GET"
+                        }
+                    ],
+                    "id": "1790",
+                    "refName": "Pallet Wrap : MSFC"
+                },
+                "itemType": {
+                    "links": [],
+                    "id": "InvtPart",
+                    "refName": "InvtPart"
+                },
+                "leadTime": 40,
+                "line": 3,
+                "linked": true,
+                "marginal": false,
+                "printItems": false,
+                "quantity": 150.0,
+                "quantityAvailable": 373.0,
+                "quantityBilled": 150.0,
+                "quantityOnHand": 378.0,
+                "quantityReceived": 150.0,
+                "rate": 32.91288,
+                "tax1Amt": 0.0,
+                "taxCode": {
+                    "links": [],
+                    "id": "17",
+                    "refName": "GST:NA-AU"
+                },
+                "taxRate1": 0.0,
+                "units": "1"
+            },
+            {
+                "links": [
+                    {
+                        "rel": "self",
+                        "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/purchaseorder/1887558/item/5",
+                        "method": "GET"
+                    }
+                ],
+                "amount": 5068.37,
+                "class": {
+                    "links": [
+                        {
+                            "rel": "self",
+                            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/classification/7",
+                            "method": "GET"
+                        }
+                    ],
+                    "id": "7",
+                    "refName": "Mailing Products"
+                },
+                "custcol_15529_eft_enabled": false,
+                "custcol_2663_isperson": false,
+                "custcol_atlas_promise_date": "2024-10-18",
+                "custcol_statistical_value_base_curr": 0.0,
+                "custcol_tbs_qty_on_order": 90300.0,
+                "description": "75% POST-CONSUMER RECYCLED COURIER PACK 450X600MM 65MIC",
+                "expectedReceiptDate": "2024-10-18",
+                "grossAmt": 5068.37,
+                "inventoryDetail": {
+                    "links": [
+                        {
+                            "rel": "self",
+                            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/purchaseorder/1887558/item/5/inventoryDetail",
+                            "method": "GET"
+                        }
+                    ],
+                    "inventoryAssignment": {
+                        "links": [
+                            {
+                                "rel": "self",
+                                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/purchaseorder/1887558/item/5/inventoryDetail/inventoryAssignment",
+                                "method": "GET"
+                            }
+                        ],
+                        "items": [],
+                        "totalResults": 0
+                    }
+                },
+                "isBillable": false,
+                "isClosed": false,
+                "isOpen": false,
+                "item": {
+                    "links": [
+                        {
+                            "rel": "self",
+                            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/inventoryitem/2688",
+                            "method": "GET"
+                        }
+                    ],
+                    "id": "2688",
+                    "refName": "Mailing Satchel : RECBAG05"
+                },
+                "itemType": {
+                    "links": [],
+                    "id": "InvtPart",
+                    "refName": "InvtPart"
+                },
+                "leadTime": 27,
+                "line": 5,
+                "linked": true,
+                "marginal": false,
+                "printItems": false,
+                "quantity": 150.0,
+                "quantityAvailable": 19.65666667,
+                "quantityBilled": 150.0,
+                "quantityOnHand": 19.65666667,
+                "quantityReceived": 150.0,
+                "rate": 33.78913,
+                "tax1Amt": 0.0,
+                "taxCode": {
+                    "links": [],
+                    "id": "17",
+                    "refName": "GST:NA-AU"
+                },
+                "taxRate1": 0.0,
+                "units": "21"
+            },
+            {
+                "links": [
+                    {
+                        "rel": "self",
+                        "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/purchaseorder/1887558/item/6",
+                        "method": "GET"
+                    }
+                ],
+                "amount": 1702.28,
+                "class": {
+                    "links": [
+                        {
+                            "rel": "self",
+                            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/classification/7",
+                            "method": "GET"
+                        }
+                    ],
+                    "id": "7",
+                    "refName": "Mailing Products"
+                },
+                "custcol_15529_eft_enabled": false,
+                "custcol_2663_isperson": false,
+                "custcol_atlas_promise_date": "2024-10-18",
+                "custcol_statistical_value_base_curr": 0.0,
+                "custcol_tbs_qty_on_order": 0.0,
+                "description": "75% POST-CONSUMER RECYCLED COURIER PACK 750X900MM 80UM",
+                "expectedReceiptDate": "2024-10-18",
+                "grossAmt": 1702.28,
+                "inventoryDetail": {
+                    "links": [
+                        {
+                            "rel": "self",
+                            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/purchaseorder/1887558/item/6/inventoryDetail",
+                            "method": "GET"
+                        }
+                    ],
+                    "inventoryAssignment": {
+                        "links": [
+                            {
+                                "rel": "self",
+                                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/purchaseorder/1887558/item/6/inventoryDetail/inventoryAssignment",
+                                "method": "GET"
+                            }
+                        ],
+                        "items": [],
+                        "totalResults": 0
+                    }
+                },
+                "isBillable": false,
+                "isClosed": false,
+                "isOpen": false,
+                "item": {
+                    "links": [
+                        {
+                            "rel": "self",
+                            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/inventoryitem/2684",
+                            "method": "GET"
+                        }
+                    ],
+                    "id": "2684",
+                    "refName": "Mailing Satchel : RECBAG08"
+                },
+                "itemType": {
+                    "links": [],
+                    "id": "InvtPart",
+                    "refName": "InvtPart"
+                },
+                "leadTime": 42,
+                "line": 6,
+                "linked": true,
+                "marginal": false,
+                "printItems": false,
+                "quantity": 50.0,
+                "quantityAvailable": 242.0,
+                "quantityBilled": 50.0,
+                "quantityOnHand": 245.0,
+                "quantityReceived": 50.0,
+                "rate": 34.04559,
+                "tax1Amt": 0.0,
+                "taxCode": {
+                    "links": [],
+                    "id": "17",
+                    "refName": "GST:NA-AU"
+                },
+                "taxRate1": 0.0,
+                "units": "6"
+            },
+            {
+                "links": [
+                    {
+                        "rel": "self",
+                        "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/purchaseorder/1887558/item/7",
+                        "method": "GET"
+                    }
+                ],
+                "amount": 4265.6,
+                "class": {
+                    "links": [
+                        {
+                            "rel": "self",
+                            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/classification/4",
+                            "method": "GET"
+                        }
+                    ],
+                    "id": "4",
+                    "refName": "Bags"
+                },
+                "custcol_15529_eft_enabled": false,
+                "custcol_2663_isperson": false,
+                "custcol_atlas_promise_date": "2024-11-14",
+                "custcol_statistical_value_base_curr": 0.0,
+                "custcol_tbs_qty_on_order": 5000.0,
+                "description": "Calico Bags Drawstring 215mm x 300mm 8oz 100% Cotton Natural",
+                "expectedReceiptDate": "2024-11-14",
+                "grossAmt": 4265.6,
+                "inventoryDetail": {
+                    "links": [
+                        {
+                            "rel": "self",
+                            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/purchaseorder/1887558/item/7/inventoryDetail",
+                            "method": "GET"
+                        }
+                    ],
+                    "inventoryAssignment": {
+                        "links": [
+                            {
+                                "rel": "self",
+                                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/purchaseorder/1887558/item/7/inventoryDetail/inventoryAssignment",
+                                "method": "GET"
+                            }
+                        ],
+                        "items": [],
+                        "totalResults": 0
+                    }
+                },
+                "isBillable": false,
+                "isClosed": false,
+                "isOpen": false,
+                "item": {
+                    "links": [
+                        {
+                            "rel": "self",
+                            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/inventoryitem/503",
+                            "method": "GET"
+                        }
+                    ],
+                    "id": "503",
+                    "refName": "Calico Bags:Drawstring Bags : DSBAG215300"
+                },
+                "itemType": {
+                    "links": [],
+                    "id": "InvtPart",
+                    "refName": "InvtPart"
+                },
+                "leadTime": 33,
+                "line": 7,
+                "linked": true,
+                "marginal": false,
+                "printItems": false,
+                "quantity": 45.0,
+                "quantityAvailable": 36.155,
+                "quantityBilled": 45.0,
+                "quantityOnHand": 36.155,
+                "quantityReceived": 45.0,
+                "rate": 94.79122,
+                "tax1Amt": 0.0,
+                "taxCode": {
+                    "links": [],
+                    "id": "17",
+                    "refName": "GST:NA-AU"
+                },
+                "taxRate1": 0.0,
+                "units": "10"
+            },
+            {
+                "links": [
+                    {
+                        "rel": "self",
+                        "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/purchaseorder/1887558/item/48",
+                        "method": "GET"
+                    }
+                ],
+                "amount": 674.39,
+                "class": {
+                    "links": [
+                        {
+                            "rel": "self",
+                            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/classification/5",
+                            "method": "GET"
+                        }
+                    ],
+                    "id": "5",
+                    "refName": "Boxes"
+                },
+                "custcol_15529_eft_enabled": false,
+                "custcol_2663_isperson": false,
+                "custcol_atlas_promise_date": "2024-11-14",
+                "custcol_statistical_value_base_curr": 0.0,
+                "custcol_tbs_qty_on_order": 0.0,
+                "description": "Diecut Mailing Box 240*125*75mm White",
+                "expectedReceiptDate": "2024-11-14",
+                "grossAmt": 674.39,
+                "inventoryDetail": {
+                    "links": [
+                        {
+                            "rel": "self",
+                            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/purchaseorder/1887558/item/48/inventoryDetail",
+                            "method": "GET"
+                        }
+                    ],
+                    "inventoryAssignment": {
+                        "links": [
+                            {
+                                "rel": "self",
+                                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/purchaseorder/1887558/item/48/inventoryDetail/inventoryAssignment",
+                                "method": "GET"
+                            }
+                        ],
+                        "items": [],
+                        "totalResults": 0
+                    }
+                },
+                "isBillable": false,
+                "isClosed": false,
+                "isOpen": false,
+                "item": {
+                    "links": [
+                        {
+                            "rel": "self",
+                            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/inventoryitem/1698",
+                            "method": "GET"
+                        }
+                    ],
+                    "id": "1698",
+                    "refName": "Cardboard Box : BX0"
+                },
+                "itemType": {
+                    "links": [],
+                    "id": "InvtPart",
+                    "refName": "InvtPart"
+                },
+                "leadTime": 30,
+                "line": 48,
+                "linked": true,
+                "marginal": false,
+                "printItems": false,
+                "quantity": 39.0,
+                "quantityAvailable": 142.0,
+                "quantityBilled": 39.0,
+                "quantityOnHand": 142.0,
+                "quantityReceived": 39.0,
+                "rate": 17.29208,
+                "tax1Amt": 0.0,
+                "taxCode": {
+                    "links": [],
+                    "id": "17",
+                    "refName": "GST:NA-AU"
+                },
+                "taxRate1": 0.0,
+                "units": "6"
+            },
+            {
+                "links": [
+                    {
+                        "rel": "self",
+                        "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/purchaseorder/1887558/item/14",
+                        "method": "GET"
+                    }
+                ],
+                "amount": 1362.36,
+                "class": {
+                    "links": [
+                        {
+                            "rel": "self",
+                            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/classification/5",
+                            "method": "GET"
+                        }
+                    ],
+                    "id": "5",
+                    "refName": "Boxes"
+                },
+                "custcol_15529_eft_enabled": false,
+                "custcol_2663_isperson": false,
+                "custcol_atlas_promise_date": "2024-11-14",
+                "custcol_statistical_value_base_curr": 0.0,
+                "custcol_tbs_qty_on_order": 16000.0,
+                "description": "Diecut Mailing Box 310*225*102mm",
+                "expectedReceiptDate": "2024-11-14",
+                "grossAmt": 1362.36,
+                "inventoryDetail": {
+                    "links": [
+                        {
+                            "rel": "self",
+                            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/purchaseorder/1887558/item/14/inventoryDetail",
+                            "method": "GET"
+                        }
+                    ],
+                    "inventoryAssignment": {
+                        "links": [
+                            {
+                                "rel": "self",
+                                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/purchaseorder/1887558/item/14/inventoryDetail/inventoryAssignment",
+                                "method": "GET"
+                            }
+                        ],
+                        "items": [],
+                        "totalResults": 0
+                    }
+                },
+                "isBillable": false,
+                "isClosed": false,
+                "isOpen": false,
+                "item": {
+                    "links": [
+                        {
+                            "rel": "self",
+                            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/inventoryitem/1648",
+                            "method": "GET"
+                        }
+                    ],
+                    "id": "1648",
+                    "refName": "Cardboard Box : BX2"
+                },
+                "itemType": {
+                    "links": [],
+                    "id": "InvtPart",
+                    "refName": "InvtPart"
+                },
+                "leadTime": 26,
+                "line": 14,
+                "linked": true,
+                "marginal": false,
+                "printItems": false,
+                "quantity": 50.0,
+                "quantityAvailable": 344.69,
+                "quantityBilled": 50.0,
+                "quantityOnHand": 344.69,
+                "quantityReceived": 50.0,
+                "rate": 27.24716,
+                "tax1Amt": 0.0,
+                "taxCode": {
+                    "links": [],
+                    "id": "17",
+                    "refName": "GST:NA-AU"
+                },
+                "taxRate1": 0.0,
+                "units": "6"
+            },
+            {
+                "links": [
+                    {
+                        "rel": "self",
+                        "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/purchaseorder/1887558/item/15",
+                        "method": "GET"
+                    }
+                ],
+                "amount": 3360.7,
+                "class": {
+                    "links": [
+                        {
+                            "rel": "self",
+                            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/classification/5",
+                            "method": "GET"
+                        }
+                    ],
+                    "id": "5",
+                    "refName": "Boxes"
+                },
+                "custcol_15529_eft_enabled": false,
+                "custcol_2663_isperson": false,
+                "custcol_atlas_promise_date": "2024-11-14",
+                "custcol_statistical_value_base_curr": 0.0,
+                "custcol_tbs_qty_on_order": 71400.0,
+                "description": "Diecut Mailing Box 220*160*77mm White",
+                "expectedReceiptDate": "2024-11-14",
+                "grossAmt": 3360.7,
+                "inventoryDetail": {
+                    "links": [
+                        {
+                            "rel": "self",
+                            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/purchaseorder/1887558/item/15/inventoryDetail",
+                            "method": "GET"
+                        }
+                    ],
+                    "inventoryAssignment": {
+                        "links": [
+                            {
+                                "rel": "self",
+                                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/purchaseorder/1887558/item/15/inventoryDetail/inventoryAssignment",
+                                "method": "GET"
+                            }
+                        ],
+                        "items": [],
+                        "totalResults": 0
+                    }
+                },
+                "isBillable": false,
+                "isClosed": false,
+                "isOpen": false,
+                "item": {
+                    "links": [
+                        {
+                            "rel": "self",
+                            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/inventoryitem/1696",
+                            "method": "GET"
+                        }
+                    ],
+                    "id": "1696",
+                    "refName": "Cardboard Box : BX1"
+                },
+                "itemType": {
+                    "links": [],
+                    "id": "InvtPart",
+                    "refName": "InvtPart"
+                },
+                "leadTime": 28,
+                "line": 15,
+                "linked": true,
+                "marginal": false,
+                "printItems": false,
+                "quantity": 210.0,
+                "quantityAvailable": 159.55,
+                "quantityBilled": 210.0,
+                "quantityOnHand": 159.55,
+                "quantityReceived": 210.0,
+                "rate": 16.00335,
+                "tax1Amt": 0.0,
+                "taxCode": {
+                    "links": [],
+                    "id": "17",
+                    "refName": "GST:NA-AU"
+                },
+                "taxRate1": 0.0,
+                "units": "6"
+            },
+            {
+                "links": [
+                    {
+                        "rel": "self",
+                        "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/purchaseorder/1887558/item/37",
+                        "method": "GET"
+                    }
+                ],
+                "amount": 2841.52,
+                "class": {
+                    "links": [
+                        {
+                            "rel": "self",
+                            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/classification/5",
+                            "method": "GET"
+                        }
+                    ],
+                    "id": "5",
+                    "refName": "Boxes"
+                },
+                "custcol_15529_eft_enabled": false,
+                "custcol_2663_isperson": false,
+                "custcol_atlas_promise_date": "2024-11-07",
+                "custcol_statistical_value_base_curr": 0.0,
+                "custcol_tbs_qty_on_order": 8400.0,
+                "description": "Diecut Mailing Box 175*135*95mm White",
+                "expectedReceiptDate": "2024-11-07",
+                "grossAmt": 2841.52,
+                "inventoryDetail": {
+                    "links": [
+                        {
+                            "rel": "self",
+                            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/purchaseorder/1887558/item/37/inventoryDetail",
+                            "method": "GET"
+                        }
+                    ],
+                    "inventoryAssignment": {
+                        "links": [
+                            {
+                                "rel": "self",
+                                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/purchaseorder/1887558/item/37/inventoryDetail/inventoryAssignment",
+                                "method": "GET"
+                            }
+                        ],
+                        "items": [],
+                        "totalResults": 0
+                    }
+                },
+                "isBillable": false,
+                "isClosed": false,
+                "isOpen": false,
+                "item": {
+                    "links": [
+                        {
+                            "rel": "self",
+                            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/inventoryitem/313",
+                            "method": "GET"
+                        }
+                    ],
+                    "id": "313",
+                    "refName": "Cardboard Box : BX175B"
+                },
+                "itemType": {
+                    "links": [],
+                    "id": "InvtPart",
+                    "refName": "InvtPart"
+                },
+                "leadTime": 42,
+                "line": 37,
+                "linked": true,
+                "marginal": false,
+                "printItems": false,
+                "quantity": 168.0,
+                "quantityAvailable": 133.84,
+                "quantityBilled": 168.0,
+                "quantityOnHand": 136.84,
+                "quantityReceived": 168.0,
+                "rate": 16.9138,
+                "tax1Amt": 0.0,
+                "taxCode": {
+                    "links": [],
+                    "id": "17",
+                    "refName": "GST:NA-AU"
+                },
+                "taxRate1": 0.0,
+                "units": "6"
+            },
+            {
+                "links": [
+                    {
+                        "rel": "self",
+                        "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/purchaseorder/1887558/item/16",
+                        "method": "GET"
+                    }
+                ],
+                "amount": 1387.53,
+                "class": {
+                    "links": [
+                        {
+                            "rel": "self",
+                            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/classification/5",
+                            "method": "GET"
+                        }
+                    ],
+                    "id": "5",
+                    "refName": "Boxes"
+                },
+                "custcol_15529_eft_enabled": false,
+                "custcol_2663_isperson": false,
+                "custcol_atlas_promise_date": "2024-11-10",
+                "custcol_statistical_value_base_curr": 0.0,
+                "custcol_tbs_qty_on_order": 0.0,
+                "description": "Candle Box 80*80*200mm White",
+                "expectedReceiptDate": "2024-11-10",
+                "grossAmt": 1387.53,
+                "inventoryDetail": {
+                    "links": [
+                        {
+                            "rel": "self",
+                            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/purchaseorder/1887558/item/16/inventoryDetail",
+                            "method": "GET"
+                        }
+                    ],
+                    "inventoryAssignment": {
+                        "links": [
+                            {
+                                "rel": "self",
+                                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/purchaseorder/1887558/item/16/inventoryDetail/inventoryAssignment",
+                                "method": "GET"
+                            }
+                        ],
+                        "items": [],
+                        "totalResults": 0
+                    }
+                },
+                "isBillable": false,
+                "isClosed": false,
+                "isOpen": false,
+                "item": {
+                    "links": [
+                        {
+                            "rel": "self",
+                            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/inventoryitem/269",
+                            "method": "GET"
+                        }
+                    ],
+                    "id": "269",
+                    "refName": "Cardboard Box : CB080B"
+                },
+                "itemType": {
+                    "links": [],
+                    "id": "InvtPart",
+                    "refName": "InvtPart"
+                },
+                "leadTime": 30,
+                "line": 16,
+                "linked": true,
+                "marginal": false,
+                "printItems": false,
+                "quantity": 114.0,
+                "quantityAvailable": 57.94,
+                "quantityBilled": 114.0,
+                "quantityOnHand": 57.94,
+                "quantityReceived": 114.0,
+                "rate": 12.17135,
+                "tax1Amt": 0.0,
+                "taxCode": {
+                    "links": [],
+                    "id": "17",
+                    "refName": "GST:NA-AU"
+                },
+                "taxRate1": 0.0,
+                "units": "6"
+            },
+            {
+                "links": [
+                    {
+                        "rel": "self",
+                        "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/purchaseorder/1887558/item/17",
+                        "method": "GET"
+                    }
+                ],
+                "amount": 394.14,
+                "class": {
+                    "links": [
+                        {
+                            "rel": "self",
+                            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/classification/5",
+                            "method": "GET"
+                        }
+                    ],
+                    "id": "5",
+                    "refName": "Boxes"
+                },
+                "custcol_15529_eft_enabled": false,
+                "custcol_2663_isperson": false,
+                "custcol_atlas_promise_date": "2024-11-17",
+                "custcol_statistical_value_base_curr": 0.0,
+                "custcol_tbs_qty_on_order": 7700.0,
+                "description": "Diecut Mailing Box 175*130*55mm Heavy Duty Brown",
+                "expectedReceiptDate": "2024-11-17",
+                "grossAmt": 394.14,
+                "inventoryDetail": {
+                    "links": [
+                        {
+                            "rel": "self",
+                            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/purchaseorder/1887558/item/17/inventoryDetail",
+                            "method": "GET"
+                        }
+                    ],
+                    "inventoryAssignment": {
+                        "links": [
+                            {
+                                "rel": "self",
+                                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/purchaseorder/1887558/item/17/inventoryDetail/inventoryAssignment",
+                                "method": "GET"
+                            }
+                        ],
+                        "items": [],
+                        "totalResults": 0
+                    }
+                },
+                "isBillable": false,
+                "isClosed": false,
+                "isOpen": false,
+                "item": {
+                    "links": [
+                        {
+                            "rel": "self",
+                            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/inventoryitem/275",
+                            "method": "GET"
+                        }
+                    ],
+                    "id": "275",
+                    "refName": "Cardboard Box : BX175HD"
+                },
+                "itemType": {
+                    "links": [],
+                    "id": "InvtPart",
+                    "refName": "InvtPart"
+                },
+                "leadTime": 30,
+                "line": 17,
+                "linked": true,
+                "marginal": false,
+                "printItems": false,
+                "quantity": 24.0,
+                "quantityAvailable": 222.69,
+                "quantityBilled": 24.0,
+                "quantityOnHand": 222.69,
+                "quantityReceived": 24.0,
+                "rate": 16.4224,
+                "tax1Amt": 0.0,
+                "taxCode": {
+                    "links": [],
+                    "id": "17",
+                    "refName": "GST:NA-AU"
+                },
+                "taxRate1": 0.0,
+                "units": "6"
+            },
+            {
+                "links": [
+                    {
+                        "rel": "self",
+                        "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/purchaseorder/1887558/item/18",
+                        "method": "GET"
+                    }
+                ],
+                "amount": 1647.99,
+                "class": {
+                    "links": [
+                        {
+                            "rel": "self",
+                            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/classification/5",
+                            "method": "GET"
+                        }
+                    ],
+                    "id": "5",
+                    "refName": "Boxes"
+                },
+                "custcol_15529_eft_enabled": false,
+                "custcol_2663_isperson": false,
+                "custcol_atlas_promise_date": "2024-11-15",
+                "custcol_statistical_value_base_curr": 0.0,
+                "custcol_tbs_qty_on_order": 5600.0,
+                "description": "Diecut Box 220x145x35mm Heavy Duty Kraft",
+                "expectedReceiptDate": "2024-11-15",
+                "grossAmt": 1647.99,
+                "inventoryDetail": {
+                    "links": [
+                        {
+                            "rel": "self",
+                            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/purchaseorder/1887558/item/18/inventoryDetail",
+                            "method": "GET"
+                        }
+                    ],
+                    "inventoryAssignment": {
+                        "links": [
+                            {
+                                "rel": "self",
+                                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/purchaseorder/1887558/item/18/inventoryDetail/inventoryAssignment",
+                                "method": "GET"
+                            }
+                        ],
+                        "items": [],
+                        "totalResults": 0
+                    }
+                },
+                "isBillable": false,
+                "isClosed": false,
+                "isOpen": false,
+                "item": {
+                    "links": [
+                        {
+                            "rel": "self",
+                            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/inventoryitem/1961",
+                            "method": "GET"
+                        }
+                    ],
+                    "id": "1961",
+                    "refName": "Cardboard Box : BX6HD"
+                },
+                "itemType": {
+                    "links": [],
+                    "id": "InvtPart",
+                    "refName": "InvtPart"
+                },
+                "leadTime": 40,
+                "line": 18,
+                "linked": true,
+                "marginal": false,
+                "printItems": false,
+                "quantity": 114.0,
+                "quantityAvailable": 7.97,
+                "quantityBilled": 114.0,
+                "quantityOnHand": 7.97,
+                "quantityReceived": 114.0,
+                "rate": 14.45602,
+                "tax1Amt": 0.0,
+                "taxCode": {
+                    "links": [],
+                    "id": "17",
+                    "refName": "GST:NA-AU"
+                },
+                "taxRate1": 0.0,
+                "units": "6"
+            },
+            {
+                "links": [
+                    {
+                        "rel": "self",
+                        "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/purchaseorder/1887558/item/19",
+                        "method": "GET"
+                    }
+                ],
+                "amount": 438.88,
+                "class": {
+                    "links": [
+                        {
+                            "rel": "self",
+                            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/classification/5",
+                            "method": "GET"
+                        }
+                    ],
+                    "id": "5",
+                    "refName": "Boxes"
+                },
+                "custcol_15529_eft_enabled": false,
+                "custcol_2663_isperson": false,
+                "custcol_atlas_promise_date": "2024-11-18",
+                "custcol_statistical_value_base_curr": 0.0,
+                "custcol_tbs_qty_on_order": 0.0,
+                "description": "Diecut Mailing Box 100*75*50mm White",
+                "expectedReceiptDate": "2024-11-18",
+                "grossAmt": 438.88,
+                "inventoryDetail": {
+                    "links": [
+                        {
+                            "rel": "self",
+                            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/purchaseorder/1887558/item/19/inventoryDetail",
+                            "method": "GET"
+                        }
+                    ],
+                    "inventoryAssignment": {
+                        "links": [
+                            {
+                                "rel": "self",
+                                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/purchaseorder/1887558/item/19/inventoryDetail/inventoryAssignment",
+                                "method": "GET"
+                            }
+                        ],
+                        "items": [],
+                        "totalResults": 0
+                    }
+                },
+                "isBillable": false,
+                "isClosed": false,
+                "isOpen": false,
+                "item": {
+                    "links": [
+                        {
+                            "rel": "self",
+                            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/inventoryitem/1688",
+                            "method": "GET"
+                        }
+                    ],
+                    "id": "1688",
+                    "refName": "Cardboard Box : BX100"
+                },
+                "itemType": {
+                    "links": [],
+                    "id": "InvtPart",
+                    "refName": "InvtPart"
+                },
+                "leadTime": 31,
+                "line": 19,
+                "linked": true,
+                "marginal": false,
+                "printItems": false,
+                "quantity": 56.0,
+                "quantityAvailable": 109.97,
+                "quantityBilled": 56.0,
+                "quantityOnHand": 109.97,
+                "quantityReceived": 56.0,
+                "rate": 7.83711,
+                "tax1Amt": 0.0,
+                "taxCode": {
+                    "links": [],
+                    "id": "17",
+                    "refName": "GST:NA-AU"
+                },
+                "taxRate1": 0.0,
+                "units": "6"
+            },
+            {
+                "links": [
+                    {
+                        "rel": "self",
+                        "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/purchaseorder/1887558/item/20",
+                        "method": "GET"
+                    }
+                ],
+                "amount": 1312.45,
+                "class": {
+                    "links": [
+                        {
+                            "rel": "self",
+                            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/classification/5",
+                            "method": "GET"
+                        }
+                    ],
+                    "id": "5",
+                    "refName": "Boxes"
+                },
+                "custcol_15529_eft_enabled": false,
+                "custcol_2663_isperson": false,
+                "custcol_atlas_promise_date": "2024-11-14",
+                "custcol_statistical_value_base_curr": 0.0,
+                "custcol_tbs_qty_on_order": 33600.0,
+                "description": "Diecut Box 150*100*75mm White",
+                "expectedReceiptDate": "2024-11-14",
+                "grossAmt": 1312.45,
+                "inventoryDetail": {
+                    "links": [
+                        {
+                            "rel": "self",
+                            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/purchaseorder/1887558/item/20/inventoryDetail",
+                            "method": "GET"
+                        }
+                    ],
+                    "inventoryAssignment": {
+                        "links": [
+                            {
+                                "rel": "self",
+                                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/purchaseorder/1887558/item/20/inventoryDetail/inventoryAssignment",
+                                "method": "GET"
+                            }
+                        ],
+                        "items": [],
+                        "totalResults": 0
+                    }
+                },
+                "isBillable": false,
+                "isClosed": false,
+                "isOpen": false,
+                "item": {
+                    "links": [
+                        {
+                            "rel": "self",
+                            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/inventoryitem/1625",
+                            "method": "GET"
+                        }
+                    ],
+                    "id": "1625",
+                    "refName": "Cardboard Box : BX150SW"
+                },
+                "itemType": {
+                    "links": [],
+                    "id": "InvtPart",
+                    "refName": "InvtPart"
+                },
+                "leadTime": 28,
+                "line": 20,
+                "linked": true,
+                "marginal": false,
+                "printItems": false,
+                "quantity": 112.0,
+                "quantityAvailable": 327.28,
+                "quantityBilled": 112.0,
+                "quantityOnHand": 327.28,
+                "quantityReceived": 112.0,
+                "rate": 11.71827,
+                "tax1Amt": 0.0,
+                "taxCode": {
+                    "links": [],
+                    "id": "17",
+                    "refName": "GST:NA-AU"
+                },
+                "taxRate1": 0.0,
+                "units": "6"
+            },
+            {
+                "links": [
+                    {
+                        "rel": "self",
+                        "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/purchaseorder/1887558/item/21",
+                        "method": "GET"
+                    }
+                ],
+                "amount": 2414.73,
+                "class": {
+                    "links": [
+                        {
+                            "rel": "self",
+                            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/classification/5",
+                            "method": "GET"
+                        }
+                    ],
+                    "id": "5",
+                    "refName": "Boxes"
+                },
+                "custcol_15529_eft_enabled": false,
+                "custcol_2663_isperson": false,
+                "custcol_atlas_promise_date": "2024-11-21",
+                "custcol_statistical_value_base_curr": 0.0,
+                "custcol_tbs_qty_on_order": 14400.0,
+                "description": "Diecut Mailing Box 220*160*77mm Heavy Duty Brown",
+                "expectedReceiptDate": "2024-11-21",
+                "grossAmt": 2414.73,
+                "inventoryDetail": {
+                    "links": [
+                        {
+                            "rel": "self",
+                            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/purchaseorder/1887558/item/21/inventoryDetail",
+                            "method": "GET"
+                        }
+                    ],
+                    "inventoryAssignment": {
+                        "links": [
+                            {
+                                "rel": "self",
+                                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/purchaseorder/1887558/item/21/inventoryDetail/inventoryAssignment",
+                                "method": "GET"
+                            }
+                        ],
+                        "items": [],
+                        "totalResults": 0
+                    }
+                },
+                "isBillable": false,
+                "isClosed": false,
+                "isOpen": false,
+                "item": {
+                    "links": [
+                        {
+                            "rel": "self",
+                            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/inventoryitem/246",
+                            "method": "GET"
+                        }
+                    ],
+                    "id": "246",
+                    "refName": "Cardboard Box : BX1HD"
+                },
+                "itemType": {
+                    "links": [],
+                    "id": "InvtPart",
+                    "refName": "InvtPart"
+                },
+                "leadTime": 30,
+                "line": 21,
+                "linked": true,
+                "marginal": false,
+                "printItems": false,
+                "quantity": 112.0,
+                "quantityAvailable": 141.74,
+                "quantityBilled": 112.0,
+                "quantityOnHand": 141.74,
+                "quantityReceived": 112.0,
+                "rate": 21.56007,
+                "tax1Amt": 0.0,
+                "taxCode": {
+                    "links": [],
+                    "id": "17",
+                    "refName": "GST:NA-AU"
+                },
+                "taxRate1": 0.0,
+                "units": "6"
+            },
+            {
+                "links": [
+                    {
+                        "rel": "self",
+                        "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/purchaseorder/1887558/item/24",
+                        "method": "GET"
+                    }
+                ],
+                "amount": 1333.03,
+                "class": {
+                    "links": [
+                        {
+                            "rel": "self",
+                            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/classification/5",
+                            "method": "GET"
+                        }
+                    ],
+                    "id": "5",
+                    "refName": "Boxes"
+                },
+                "custcol_15529_eft_enabled": false,
+                "custcol_2663_isperson": false,
+                "custcol_atlas_promise_date": "2024-11-14",
+                "custcol_statistical_value_base_curr": 0.0,
+                "custcol_tbs_qty_on_order": 22400.0,
+                "description": "Diecut Mailing Box 175*130*55mm White",
+                "expectedReceiptDate": "2024-11-14",
+                "grossAmt": 1333.03,
+                "inventoryDetail": {
+                    "links": [
+                        {
+                            "rel": "self",
+                            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/purchaseorder/1887558/item/24/inventoryDetail",
+                            "method": "GET"
+                        }
+                    ],
+                    "inventoryAssignment": {
+                        "links": [
+                            {
+                                "rel": "self",
+                                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/purchaseorder/1887558/item/24/inventoryDetail/inventoryAssignment",
+                                "method": "GET"
+                            }
+                        ],
+                        "items": [],
+                        "totalResults": 0
+                    }
+                },
+                "isBillable": false,
+                "isClosed": false,
+                "isOpen": false,
+                "item": {
+                    "links": [
+                        {
+                            "rel": "self",
+                            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/inventoryitem/131",
+                            "method": "GET"
+                        }
+                    ],
+                    "id": "131",
+                    "refName": "Cardboard Box : BX175"
+                },
+                "itemType": {
+                    "links": [],
+                    "id": "InvtPart",
+                    "refName": "InvtPart"
+                },
+                "leadTime": 30,
+                "line": 24,
+                "linked": true,
+                "marginal": false,
+                "printItems": false,
+                "quantity": 112.0,
+                "quantityAvailable": 279.53,
+                "quantityBilled": 112.0,
+                "quantityOnHand": 285.53,
+                "quantityReceived": 112.0,
+                "rate": 11.90207,
+                "tax1Amt": 0.0,
+                "taxCode": {
+                    "links": [],
+                    "id": "17",
+                    "refName": "GST:NA-AU"
+                },
+                "taxRate1": 0.0,
+                "units": "6"
+            },
+            {
+                "links": [
+                    {
+                        "rel": "self",
+                        "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/purchaseorder/1887558/item/25",
+                        "method": "GET"
+                    }
+                ],
+                "amount": 1208.38,
+                "class": {
+                    "links": [
+                        {
+                            "rel": "self",
+                            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/classification/5",
+                            "method": "GET"
+                        }
+                    ],
+                    "id": "5",
+                    "refName": "Boxes"
+                },
+                "custcol_15529_eft_enabled": false,
+                "custcol_2663_isperson": false,
+                "custcol_atlas_promise_date": "2024-11-14",
+                "custcol_statistical_value_base_curr": 0.0,
+                "custcol_tbs_qty_on_order": 11200.0,
+                "description": "Diecut Mailing Box 220*160*50mm White",
+                "expectedReceiptDate": "2024-11-14",
+                "grossAmt": 1208.38,
+                "inventoryDetail": {
+                    "links": [
+                        {
+                            "rel": "self",
+                            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/purchaseorder/1887558/item/25/inventoryDetail",
+                            "method": "GET"
+                        }
+                    ],
+                    "inventoryAssignment": {
+                        "links": [
+                            {
+                                "rel": "self",
+                                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/purchaseorder/1887558/item/25/inventoryDetail/inventoryAssignment",
+                                "method": "GET"
+                            }
+                        ],
+                        "items": [],
+                        "totalResults": 0
+                    }
+                },
+                "isBillable": false,
+                "isClosed": false,
+                "isOpen": false,
+                "item": {
+                    "links": [
+                        {
+                            "rel": "self",
+                            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/inventoryitem/314",
+                            "method": "GET"
+                        }
+                    ],
+                    "id": "314",
+                    "refName": "Cardboard Box : BX1S"
+                },
+                "itemType": {
+                    "links": [],
+                    "id": "InvtPart",
+                    "refName": "InvtPart"
+                },
+                "leadTime": 30,
+                "line": 25,
+                "linked": true,
+                "marginal": false,
+                "printItems": false,
+                "quantity": 84.0,
+                "quantityAvailable": 221.58,
+                "quantityBilled": 84.0,
+                "quantityOnHand": 221.58,
+                "quantityReceived": 84.0,
+                "rate": 14.38549,
+                "tax1Amt": 0.0,
+                "taxCode": {
+                    "links": [],
+                    "id": "17",
+                    "refName": "GST:NA-AU"
+                },
+                "taxRate1": 0.0,
+                "units": "6"
+            },
+            {
+                "links": [
+                    {
+                        "rel": "self",
+                        "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/purchaseorder/1887558/item/26",
+                        "method": "GET"
+                    }
+                ],
+                "amount": 2827.4,
+                "class": {
+                    "links": [
+                        {
+                            "rel": "self",
+                            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/classification/5",
+                            "method": "GET"
+                        }
+                    ],
+                    "id": "5",
+                    "refName": "Boxes"
+                },
+                "custcol_15529_eft_enabled": false,
+                "custcol_2663_isperson": false,
+                "custcol_atlas_promise_date": "2024-11-18",
+                "custcol_statistical_value_base_curr": 0.0,
+                "custcol_tbs_qty_on_order": 8400.0,
+                "description": "Diecut Box 250*190*90mm White",
+                "expectedReceiptDate": "2024-11-18",
+                "grossAmt": 2827.4,
+                "inventoryDetail": {
+                    "links": [
+                        {
+                            "rel": "self",
+                            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/purchaseorder/1887558/item/26/inventoryDetail",
+                            "method": "GET"
+                        }
+                    ],
+                    "inventoryAssignment": {
+                        "links": [
+                            {
+                                "rel": "self",
+                                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/purchaseorder/1887558/item/26/inventoryDetail/inventoryAssignment",
+                                "method": "GET"
+                            }
+                        ],
+                        "items": [],
+                        "totalResults": 0
+                    }
+                },
+                "isBillable": false,
+                "isClosed": false,
+                "isOpen": false,
+                "item": {
+                    "links": [
+                        {
+                            "rel": "self",
+                            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/inventoryitem/191",
+                            "method": "GET"
+                        }
+                    ],
+                    "id": "191",
+                    "refName": "Cardboard Box : BX250SW"
+                },
+                "itemType": {
+                    "links": [],
+                    "id": "InvtPart",
+                    "refName": "InvtPart"
+                },
+                "leadTime": 31,
+                "line": 26,
+                "linked": true,
+                "marginal": false,
+                "printItems": false,
+                "quantity": 112.0,
+                "quantityAvailable": 92.77,
+                "quantityBilled": 112.0,
+                "quantityOnHand": 92.77,
+                "quantityReceived": 112.0,
+                "rate": 25.2446,
+                "tax1Amt": 0.0,
+                "taxCode": {
+                    "links": [],
+                    "id": "17",
+                    "refName": "GST:NA-AU"
+                },
+                "taxRate1": 0.0,
+                "units": "6"
+            },
+            {
+                "links": [
+                    {
+                        "rel": "self",
+                        "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/purchaseorder/1887558/item/27",
+                        "method": "GET"
+                    }
+                ],
+                "amount": 1491.37,
+                "class": {
+                    "links": [
+                        {
+                            "rel": "self",
+                            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/classification/5",
+                            "method": "GET"
+                        }
+                    ],
+                    "id": "5",
+                    "refName": "Boxes"
+                },
+                "custcol_15529_eft_enabled": false,
+                "custcol_2663_isperson": false,
+                "custcol_atlas_promise_date": "2024-11-01",
+                "custcol_statistical_value_base_curr": 0.0,
+                "custcol_tbs_qty_on_order": 200.0,
+                "description": "Diecut Mailing Box 270*200*95mm White",
+                "expectedReceiptDate": "2024-11-01",
+                "grossAmt": 1491.37,
+                "inventoryDetail": {
+                    "links": [
+                        {
+                            "rel": "self",
+                            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/purchaseorder/1887558/item/27/inventoryDetail",
+                            "method": "GET"
+                        }
+                    ],
+                    "inventoryAssignment": {
+                        "links": [
+                            {
+                                "rel": "self",
+                                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/purchaseorder/1887558/item/27/inventoryDetail/inventoryAssignment",
+                                "method": "GET"
+                            }
+                        ],
+                        "items": [],
+                        "totalResults": 0
+                    }
+                },
+                "isBillable": false,
+                "isClosed": false,
+                "isOpen": false,
+                "item": {
+                    "links": [
+                        {
+                            "rel": "self",
+                            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/inventoryitem/206",
+                            "method": "GET"
+                        }
+                    ],
+                    "id": "206",
+                    "refName": "Cardboard Box : BX270S"
+                },
+                "itemType": {
+                    "links": [],
+                    "id": "InvtPart",
+                    "refName": "InvtPart"
+                },
+                "leadTime": 30,
+                "line": 27,
+                "linked": true,
+                "marginal": false,
+                "printItems": false,
+                "quantity": 56.0,
+                "quantityAvailable": 225.64,
+                "quantityBilled": 56.0,
+                "quantityOnHand": 225.64,
+                "quantityReceived": 56.0,
+                "rate": 26.63165,
+                "tax1Amt": 0.0,
+                "taxCode": {
+                    "links": [],
+                    "id": "17",
+                    "refName": "GST:NA-AU"
+                },
+                "taxRate1": 0.0,
+                "units": "6"
+            },
+            {
+                "links": [
+                    {
+                        "rel": "self",
+                        "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/purchaseorder/1887558/item/28",
+                        "method": "GET"
+                    }
+                ],
+                "amount": 581.42,
+                "class": {
+                    "links": [
+                        {
+                            "rel": "self",
+                            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/classification/5",
+                            "method": "GET"
+                        }
+                    ],
+                    "id": "5",
+                    "refName": "Boxes"
+                },
+                "custcol_15529_eft_enabled": false,
+                "custcol_2663_isperson": false,
+                "custcol_atlas_promise_date": "2024-11-13",
+                "custcol_statistical_value_base_curr": 0.0,
+                "custcol_tbs_qty_on_order": 16800.0,
+                "description": "Diecut Mailing Box 220*160*25mm White",
+                "expectedReceiptDate": "2024-11-13",
+                "grossAmt": 581.42,
+                "inventoryDetail": {
+                    "links": [
+                        {
+                            "rel": "self",
+                            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/purchaseorder/1887558/item/28/inventoryDetail",
+                            "method": "GET"
+                        }
+                    ],
+                    "inventoryAssignment": {
+                        "links": [
+                            {
+                                "rel": "self",
+                                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/purchaseorder/1887558/item/28/inventoryDetail/inventoryAssignment",
+                                "method": "GET"
+                            }
+                        ],
+                        "items": [],
+                        "totalResults": 0
+                    }
+                },
+                "isBillable": false,
+                "isClosed": false,
+                "isOpen": false,
+                "item": {
+                    "links": [
+                        {
+                            "rel": "self",
+                            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/inventoryitem/315",
+                            "method": "GET"
+                        }
+                    ],
+                    "id": "315",
+                    "refName": "Cardboard Box : BX6S"
+                },
+                "itemType": {
+                    "links": [],
+                    "id": "InvtPart",
+                    "refName": "InvtPart"
+                },
+                "leadTime": 31,
+                "line": 28,
+                "linked": true,
+                "marginal": false,
+                "printItems": false,
+                "quantity": 56.0,
+                "quantityAvailable": 35.39,
+                "quantityBilled": 56.0,
+                "quantityOnHand": 35.39,
+                "quantityReceived": 56.0,
+                "rate": 10.38252,
+                "tax1Amt": 0.0,
+                "taxCode": {
+                    "links": [],
+                    "id": "17",
+                    "refName": "GST:NA-AU"
+                },
+                "taxRate1": 0.0,
+                "units": "6"
+            },
+            {
+                "links": [
+                    {
+                        "rel": "self",
+                        "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/purchaseorder/1887558/item/29",
+                        "method": "GET"
+                    }
+                ],
+                "amount": 618.16,
+                "class": {
+                    "links": [
+                        {
+                            "rel": "self",
+                            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/classification/5",
+                            "method": "GET"
+                        }
+                    ],
+                    "id": "5",
+                    "refName": "Boxes"
+                },
+                "custcol_15529_eft_enabled": false,
+                "custcol_2663_isperson": false,
+                "custcol_atlas_promise_date": "2024-11-16",
+                "custcol_statistical_value_base_curr": 0.0,
+                "custcol_tbs_qty_on_order": 0.0,
+                "description": "Candle Box 105*105*115mm White",
+                "expectedReceiptDate": "2024-11-16",
+                "grossAmt": 618.16,
+                "inventoryDetail": {
+                    "links": [
+                        {
+                            "rel": "self",
+                            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/purchaseorder/1887558/item/29/inventoryDetail",
+                            "method": "GET"
+                        }
+                    ],
+                    "inventoryAssignment": {
+                        "links": [
+                            {
+                                "rel": "self",
+                                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/purchaseorder/1887558/item/29/inventoryDetail/inventoryAssignment",
+                                "method": "GET"
+                            }
+                        ],
+                        "items": [],
+                        "totalResults": 0
+                    }
+                },
+                "isBillable": false,
+                "isClosed": false,
+                "isOpen": false,
+                "item": {
+                    "links": [
+                        {
+                            "rel": "self",
+                            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/inventoryitem/199",
+                            "method": "GET"
+                        }
+                    ],
+                    "id": "199",
+                    "refName": "Cardboard Box : CB105"
+                },
+                "itemType": {
+                    "links": [],
+                    "id": "InvtPart",
+                    "refName": "InvtPart"
+                },
+                "leadTime": 27,
+                "line": 29,
+                "linked": true,
+                "marginal": false,
+                "printItems": false,
+                "quantity": 56.0,
+                "quantityAvailable": 196.25,
+                "quantityBilled": 56.0,
+                "quantityOnHand": 196.25,
+                "quantityReceived": 56.0,
+                "rate": 11.03864,
+                "tax1Amt": 0.0,
+                "taxCode": {
+                    "links": [],
+                    "id": "17",
+                    "refName": "GST:NA-AU"
+                },
+                "taxRate1": 0.0,
+                "units": "6"
+            },
+            {
+                "links": [
+                    {
+                        "rel": "self",
+                        "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/purchaseorder/1887558/item/30",
+                        "method": "GET"
+                    }
+                ],
+                "amount": 1510.57,
+                "class": {
+                    "links": [
+                        {
+                            "rel": "self",
+                            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/classification/1",
+                            "method": "GET"
+                        }
+                    ],
+                    "id": "1",
+                    "refName": "Protective Packaging"
+                },
+                "custcol_15529_eft_enabled": false,
+                "custcol_2663_isperson": false,
+                "custcol_atlas_promise_date": "2024-10-18",
+                "custcol_statistical_value_base_curr": 0.0,
+                "custcol_tbs_qty_on_order": 5700.0,
+                "description": "3030 Kraft Cardboard Edge Protectors 50x50x1160mm_4.5mm",
+                "expectedReceiptDate": "2024-10-18",
+                "grossAmt": 1510.57,
+                "inventoryDetail": {
+                    "links": [
+                        {
+                            "rel": "self",
+                            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/purchaseorder/1887558/item/30/inventoryDetail",
+                            "method": "GET"
+                        }
+                    ],
+                    "inventoryAssignment": {
+                        "links": [
+                            {
+                                "rel": "self",
+                                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/purchaseorder/1887558/item/30/inventoryDetail/inventoryAssignment",
+                                "method": "GET"
+                            }
+                        ],
+                        "items": [],
+                        "totalResults": 0
+                    }
+                },
+                "isBillable": false,
+                "isClosed": false,
+                "isOpen": false,
+                "item": {
+                    "links": [
+                        {
+                            "rel": "self",
+                            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/inventoryitem/142",
+                            "method": "GET"
+                        }
+                    ],
+                    "id": "142",
+                    "refName": "Pallet Wrap : PCCPK1160"
+                },
+                "itemType": {
+                    "links": [],
+                    "id": "InvtPart",
+                    "refName": "InvtPart"
+                },
+                "leadTime": 26,
+                "line": 30,
+                "linked": true,
+                "marginal": false,
+                "printItems": false,
+                "quantity": 228.0,
+                "quantityAvailable": 652.92,
+                "quantityBilled": 228.0,
+                "quantityOnHand": 672.92,
+                "quantityReceived": 228.0,
+                "rate": 6.62532,
+                "tax1Amt": 0.0,
+                "taxCode": {
+                    "links": [],
+                    "id": "17",
+                    "refName": "GST:NA-AU"
+                },
+                "taxRate1": 0.0,
+                "units": "4"
+            }
+        ],
+        "totalResults": 23
+    },
+    "lastModifiedDate": "2024-11-21T23:56:00Z",
+    "location": {
+        "links": [
+            {
+                "rel": "self",
+                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/location/1",
+                "method": "GET"
+            }
+        ],
+        "id": "1",
+        "refName": "VIC Main Warehouse"
+    },
+    "orderStatus": {
+        "links": [],
+        "id": "G",
+        "refName": "G"
+    },
+    "prevDate": "2024-10-18",
+    "shipAddress": "VIC Main Warehouse<br>Factory B, 24 Princes Hwy<br>Doveton VIC 3177<br>Australia",
+    "shipDate": "2024-10-12",
+    "shipIsResidential": false,
+    "shipOverride": false,
+    "shippingAddress": {
+        "links": [
+            {
+                "rel": "self",
+                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/purchaseorder/1887558/shippingAddress",
+                "method": "GET"
+            }
+        ],
+        "addr1": "59-65 Gaine Road",
+        "addressee": "VIC Main Warehouse",
+        "addrText": "VIC Main Warehouse\r\n59-65 Gaine Road\r\nDandenong South VIC 3175\r\nAustralia",
+        "city": "Dandenong South",
+        "country": {
+            "links": [],
+            "id": "AU",
+            "refName": "Australia"
+        },
+        "override": false,
+        "state": "VIC",
+        "zip": "3175"
+    },
+    "shippingAddress_text": "VIC Main Warehouse<br>59-65 Gaine Road<br>Dandenong South VIC 3175<br>Australia",
+    "status": {
+        "links": [],
+        "id": "Fully Billed",
+        "refName": "Fully Billed"
+    },
+    "subsidiary": {
+        "links": [
+            {
+                "rel": "self",
+                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/subsidiary/1",
+                "method": "GET"
+            }
+        ],
+        "id": "1",
+        "refName": "STANLEY PACKAGING GROUP PTY LTD"
+    },
+    "subtotal": 43152.08,
+    "supervisorApproval": true,
+    "suppressUserEventsAndEmails": "F",
+    "taxTotal": 0.0,
+    "terms": {
+        "links": [
+            {
+                "rel": "self",
+                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/term/1",
+                "method": "GET"
+            }
+        ],
+        "id": "1",
+        "refName": "Net 14"
+    },
+    "toBeEmailed": false,
+    "toBeFaxed": false,
+    "toBePrinted": false,
+    "total": 43152.08,
+    "tranDate": "2024-10-18",
+    "tranId": "PO52027",
+    "transactionNumber": "PURCHORD2055",
+    "updateDropshipOrderQty": "T"
+}

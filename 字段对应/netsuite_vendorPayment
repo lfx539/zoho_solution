@@ -1,0 +1,206 @@
+{
+    "links": [
+        {
+            "rel": "self",
+            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/vendorpayment/3078769?expandSubResources=true",
+            "method": "GET"
+        }
+    ],
+    "account": {
+        "links": [
+            {
+                "rel": "self",
+                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/account/426",
+                "method": "GET"
+            }
+        ],
+        "id": "426",
+        "refName": "11600 AMEX Business Credit Card"
+    },
+    "address": "DIRECT FREIGHT EXPRESS<br>20-26 Scrivener Street<br>Warwick Farm NSW 2170<br>Australia",
+    "apply": {
+        "links": [
+            {
+                "rel": "self",
+                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/vendorpayment/3078769/apply",
+                "method": "GET"
+            }
+        ],
+        "items": [
+            {
+                "links": [
+                    {
+                        "rel": "self",
+                        "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/vendorpayment/3078769/apply/doc=3036078,line=0",
+                        "method": "GET"
+                    }
+                ],
+                "amount": 10919.56,
+                "apply": true,
+                "applyDate": "2025-11-05",
+                "currency": "Australian Dollar",
+                "doc": {
+                    "links": [],
+                    "id": "3036078",
+                    "refName": "3036078"
+                },
+                "due": 10919.56,
+                "line": 0,
+                "refNum": "1877503",
+                "total": 10919.56,
+                "type": "Bill"
+            }
+        ],
+        "totalResults": 1
+    },
+    "balance": -184306.33,
+    "cleared": true,
+    "clearedDate": "2025-11-06",
+    "createdDate": "2025-11-05T03:55:00Z",
+    "currency": {
+        "links": [
+            {
+                "rel": "self",
+                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/currency/1",
+                "method": "GET"
+            }
+        ],
+        "id": "1",
+        "refName": "Australian Dollar"
+    },
+    "custbody_11187_pref_entity_bank": {
+        "links": [
+            {
+                "rel": "self",
+                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/customrecord_2663_entity_bank_details/85",
+                "method": "GET"
+            }
+        ],
+        "id": "85",
+        "refName": "DIRECT FREIGHT EXPRESS PTY LTD"
+    },
+    "custbody_11724_pay_bank_fees": false,
+    "custbody_9997_is_for_ep_eft": true,
+    "custbody_anz_4disputed_invoice": false,
+    "custbody_anz_7supply_chain": false,
+    "custbody_anz_date_received": "2025-11-05",
+    "custbody_anz_grant_payment_type": false,
+    "custbody_anz_include_in_tpar": false,
+    "custbody_atlas_no_hdn": {
+        "links": [
+            {
+                "rel": "self",
+                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/customlist_atlas_appr_by_creator/2",
+                "method": "GET"
+            }
+        ],
+        "id": "2",
+        "refName": "No"
+    },
+    "custbody_atlas_yes_hdn": {
+        "links": [
+            {
+                "rel": "self",
+                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/customlist_atlas_appr_by_creator/1",
+                "method": "GET"
+            }
+        ],
+        "id": "1",
+        "refName": "Yes"
+    },
+    "custbody_icsjg_child_jnrls": {
+        "links": [
+            {
+                "rel": "self",
+                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/vendorpayment/3078769/custbody_icsjg_child_jnrls",
+                "method": "GET"
+            }
+        ],
+        "count": 0,
+        "hasMore": false,
+        "items": [],
+        "offset": 0,
+        "totalResults": 0
+    },
+    "custbody_nondeductible_ref_tran": {
+        "links": [
+            {
+                "rel": "self",
+                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/vendorpayment/3078769/custbody_nondeductible_ref_tran",
+                "method": "GET"
+            }
+        ],
+        "count": 0,
+        "hasMore": false,
+        "items": [],
+        "offset": 0,
+        "totalResults": 0
+    },
+    "custbody_pr_off_payroll": false,
+    "entity": {
+        "links": [
+            {
+                "rel": "self",
+                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/vendor/1380428",
+                "method": "GET"
+            }
+        ],
+        "id": "1380428",
+        "refName": "DIRECT FREIGHT EXPRESS PTY LTD"
+    },
+    "exchangeRate": 1.0,
+    "excludeFromGLNumbering": false,
+    "id": "3078769",
+    "lastModifiedDate": "2025-11-05T03:55:00Z",
+    "memo": "period to 08.10.25_14.10.25",
+    "payeeAddress": {
+        "links": [
+            {
+                "rel": "self",
+                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/vendorpayment/3078769/payeeAddress",
+                "method": "GET"
+            }
+        ],
+        "addr1": "20-26 Scrivener Street",
+        "addressee": "DIRECT FREIGHT EXPRESS",
+        "addrText": "DIRECT FREIGHT EXPRESS\n20-26 Scrivener Street\nWarwick Farm NSW 2170\nAustralia",
+        "city": "Warwick Farm",
+        "country": {
+            "links": [],
+            "id": "AU",
+            "refName": "Australia"
+        },
+        "override": false,
+        "state": "NSW",
+        "zip": "2170"
+    },
+    "payeeAddress_text": "DIRECT FREIGHT EXPRESS<br>20-26 Scrivener Street<br>Warwick Farm NSW 2170<br>Australia",
+    "postingPeriod": {
+        "links": [
+            {
+                "rel": "self",
+                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/accountingperiod/279",
+                "method": "GET"
+            }
+        ],
+        "id": "279",
+        "refName": "Nov 2025"
+    },
+    "prevDate": "2025-11-05",
+    "printVoucher": false,
+    "subsidiary": {
+        "links": [
+            {
+                "rel": "self",
+                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/subsidiary/1",
+                "method": "GET"
+            }
+        ],
+        "id": "1",
+        "refName": "STANLEY PACKAGING GROUP PTY LTD"
+    },
+    "toBePrinted": false,
+    "total": 10919.56,
+    "tranDate": "2025-11-05",
+    "transactionNumber": "VENDPYMT2656"
+}

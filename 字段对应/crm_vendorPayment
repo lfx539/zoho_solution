@@ -1,0 +1,97 @@
+Balance	
+Balance
+Decimal	
+Bank	
+Bank
+Single Line	
+Cleared	
+Cleared
+Boolean	
+Cleared Date	
+Cleared_Date
+Date	
+Connected To	
+Connected_To__s
+MultiModuleLookup	
+Created By	
+Created_By
+Single Line	
+Date Received	
+Date_Received
+Date	
+Email	
+Email
+Email	
+Email Opt Out	
+Email_Opt_Out
+Boolean	
+ExchangeRate	
+ExchangeRate
+Decimal	
+Memo	
+Memo
+Single Line	
+Modified By	
+Modified_By
+Single Line	
+Netsuite Id	
+Netsuite_Id
+Single Line	
+Payment Applications	
+Payment_Applications
+Subform	
+Payment Date	
+Payment_Date
+Date	
+Posting Period	
+Posting_Period
+Pick List	
+Profile Image	
+Record_Image
+VendorPayment Image	
+Ref Number	
+Ref_Number
+Single Line	
+Secondary Email	
+Secondary_Email
+Email	
+Tag	
+Tag
+Single Line	
+Vendor_Name	
+Vendor_Name
+Lookup	
+VendorPayment Name	
+Name
+Single Line	
+VendorPayment Owner	
+Owner
+Lookup	
+Payment Applications
+Amount	
+Amount
+Currency	
+Amount Due	
+Amount_Due
+Currency	
+Apply Date	
+Apply_Date
+Date	
+Bill	
+Bill
+Lookup	
+Created By	
+Created_By
+Single Line	
+Credit	
+Credit
+Lookup	
+Original Amount	
+Original_Amount
+Currency	
+Ref Num	
+Ref_Num
+Single Line	
+Type	
+Type
+Pick List	

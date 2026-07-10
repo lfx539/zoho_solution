@@ -1,0 +1,344 @@
+{
+    "links": [
+        {
+            "rel": "self",
+            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/itemreceipt/3482179?expandSubResources=true",
+            "method": "GET"
+        }
+    ],
+    "class": {
+        "links": [
+            {
+                "rel": "self",
+                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/classification/6",
+                "method": "GET"
+            }
+        ],
+        "id": "6",
+        "refName": "Paper Packaging"
+    },
+    "createdDate": "2026-03-03T22:42:00Z",
+    "createdFrom": {
+        "links": [],
+        "id": "3480538",
+        "refName": "Purchase Order #PO53583"
+    },
+    "currency": {
+        "links": [
+            {
+                "rel": "self",
+                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/currency/1",
+                "method": "GET"
+            }
+        ],
+        "id": "1",
+        "refName": "Australian Dollar"
+    },
+    "custbody_atlas_no_hdn": {
+        "links": [
+            {
+                "rel": "self",
+                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/customlist_atlas_appr_by_creator/2",
+                "method": "GET"
+            }
+        ],
+        "id": "2",
+        "refName": "No"
+    },
+    "custbody_atlas_yes_hdn": {
+        "links": [
+            {
+                "rel": "self",
+                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/customlist_atlas_appr_by_creator/1",
+                "method": "GET"
+            }
+        ],
+        "id": "1",
+        "refName": "Yes"
+    },
+    "custbody_icsjg_child_jnrls": {
+        "links": [
+            {
+                "rel": "self",
+                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/itemreceipt/3482179/custbody_icsjg_child_jnrls",
+                "method": "GET"
+            }
+        ],
+        "count": 0,
+        "hasMore": false,
+        "items": [],
+        "offset": 0,
+        "totalResults": 0
+    },
+    "custbody_nondeductible_ref_tran": {
+        "links": [
+            {
+                "rel": "self",
+                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/itemreceipt/3482179/custbody_nondeductible_ref_tran",
+                "method": "GET"
+            }
+        ],
+        "count": 0,
+        "hasMore": false,
+        "items": [],
+        "offset": 0,
+        "totalResults": 0
+    },
+    "entity": {
+        "links": [
+            {
+                "rel": "self",
+                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/vendor/709411",
+                "method": "GET"
+            }
+        ],
+        "id": "709411",
+        "refName": "Lion Packaging Pty Ltd"
+    },
+    "exchangeRate": 1.0,
+    "excludeFromGLNumbering": false,
+    "expense": {
+        "links": [
+            {
+                "rel": "self",
+                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/itemreceipt/3482179/expense",
+                "method": "GET"
+            }
+        ],
+        "items": [],
+        "totalResults": 0
+    },
+    "id": "3482179",
+    "item": {
+        "links": [
+            {
+                "rel": "self",
+                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/itemreceipt/3482179/item",
+                "method": "GET"
+            }
+        ],
+        "items": [
+            {
+                "links": [
+                    {
+                        "rel": "self",
+                        "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/itemreceipt/3482179/item/1",
+                        "method": "GET"
+                    }
+                ],
+                "billVarianceStatus": {
+                    "links": [],
+                    "id": "NOVARIANCES",
+                    "refName": "NOVARIANCES"
+                },
+                "class": {
+                    "links": [
+                        {
+                            "rel": "self",
+                            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/classification/6",
+                            "method": "GET"
+                        }
+                    ],
+                    "id": "6",
+                    "refName": "Paper Packaging"
+                },
+                "currency": "Australian Dollar",
+                "description": "CORRUGATED ROLL 1200mmx50sqm RECYCLE PAPER",
+                "generateAccruals": true,
+                "inventoryDetail": {
+                    "links": [
+                        {
+                            "rel": "self",
+                            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/itemreceipt/3482179/item/1/inventoryDetail",
+                            "method": "GET"
+                        }
+                    ],
+                    "inventoryAssignment": {
+                        "links": [
+                            {
+                                "rel": "self",
+                                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/itemreceipt/3482179/item/1/inventoryDetail/inventoryAssignment",
+                                "method": "GET"
+                            }
+                        ],
+                        "items": [],
+                        "totalResults": 0
+                    }
+                },
+                "item": {
+                    "links": [
+                        {
+                            "rel": "self",
+                            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/inventoryitem/2731",
+                            "method": "GET"
+                        }
+                    ],
+                    "id": "2731",
+                    "refName": "2731"
+                },
+                "itemFxAmount": 540,
+                "itemName": "CCR120050",
+                "itemReceive": true,
+                "itemType": "InvtPart",
+                "itemUnitPrice": 30,
+                "landedCost": {
+                    "links": [
+                        {
+                            "rel": "self",
+                            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/itemreceipt/3482179/item/1/landedCost",
+                            "method": "GET"
+                        }
+                    ],
+                    "landedCostData": {
+                        "links": [
+                            {
+                                "rel": "self",
+                                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/itemreceipt/3482179/item/1/landedCost/landedCostData",
+                                "method": "GET"
+                            }
+                        ],
+                        "items": [],
+                        "totalResults": 0
+                    }
+                },
+                "line": 1,
+                "location": {
+                    "links": [
+                        {
+                            "rel": "self",
+                            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/location/1",
+                            "method": "GET"
+                        }
+                    ],
+                    "id": "1",
+                    "refName": "VIC Main Warehouse"
+                },
+                "onHand": 0.55555556,
+                "orderDoc": {
+                    "links": [],
+                    "id": "3480538",
+                    "refName": "3480538"
+                },
+                "orderLine": 1,
+                "quantity": 2.0,
+                "rate": 270.0,
+                "units": "20",
+                "unitsDisplay": "9PK"
+            }
+        ],
+        "totalResults": 1
+    },
+    "landedCostPerLine": false,
+    "landedCosts": {
+        "links": [
+            {
+                "rel": "self",
+                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/itemreceipt/3482179/landedCosts",
+                "method": "GET"
+            }
+        ],
+        "items": [
+            {
+                "links": [
+                    {
+                        "rel": "self",
+                        "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/itemreceipt/3482179/landedCosts/1",
+                        "method": "GET"
+                    }
+                ],
+                "category": {
+                    "links": [
+                        {
+                            "rel": "self",
+                            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/costcategory/1",
+                            "method": "GET"
+                        }
+                    ],
+                    "id": "1",
+                    "refName": "Sea Freight"
+                }
+            },
+            {
+                "links": [
+                    {
+                        "rel": "self",
+                        "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/itemreceipt/3482179/landedCosts/2",
+                        "method": "GET"
+                    }
+                ],
+                "category": {
+                    "links": [
+                        {
+                            "rel": "self",
+                            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/costcategory/2",
+                            "method": "GET"
+                        }
+                    ],
+                    "id": "2",
+                    "refName": "GST on Imports"
+                }
+            },
+            {
+                "links": [
+                    {
+                        "rel": "self",
+                        "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/itemreceipt/3482179/landedCosts/3",
+                        "method": "GET"
+                    }
+                ],
+                "category": {
+                    "links": [
+                        {
+                            "rel": "self",
+                            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/costcategory/3",
+                            "method": "GET"
+                        }
+                    ],
+                    "id": "3",
+                    "refName": "Customs Duty"
+                }
+            }
+        ],
+        "totalResults": 3
+    },
+    "lastModifiedDate": "2026-03-03T22:42:00Z",
+    "location": {
+        "links": [
+            {
+                "rel": "self",
+                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/location/1",
+                "method": "GET"
+            }
+        ],
+        "id": "1",
+        "refName": "VIC Main Warehouse"
+    },
+    "orderId": 3480538,
+    "orderType": "PurchOrd",
+    "postingPeriod": {
+        "links": [
+            {
+                "rel": "self",
+                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/accountingperiod/284",
+                "method": "GET"
+            }
+        ],
+        "id": "284",
+        "refName": "Mar 2026"
+    },
+    "prevDate": "2026-03-04",
+    "subsidiary": {
+        "links": [
+            {
+                "rel": "self",
+                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/subsidiary/1",
+                "method": "GET"
+            }
+        ],
+        "id": "1",
+        "refName": "STANLEY PACKAGING GROUP PTY LTD"
+    },
+    "tranDate": "2026-03-04",
+    "tranId": "IR7104",
+    "transactionNumber": "ITEMRCPT6106"
+}

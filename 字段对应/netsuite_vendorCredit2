@@ -1,0 +1,306 @@
+{
+    "links": [
+        {
+            "rel": "self",
+            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/vendorcredit/2619917?expandSubResources=true",
+            "method": "GET"
+        }
+    ],
+    "applied": 265.17,
+    "apply": {
+        "links": [
+            {
+                "rel": "self",
+                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/vendorcredit/2619917/apply",
+                "method": "GET"
+            }
+        ],
+        "items": [
+            {
+                "links": [
+                    {
+                        "rel": "self",
+                        "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/vendorcredit/2619917/apply/doc=2639725,line=0",
+                        "method": "GET"
+                    }
+                ],
+                "amount": 265.17,
+                "apply": true,
+                "applyDate": "2025-07-31",
+                "createdFrom": "2634246",
+                "currency": "Australian Dollar",
+                "doc": {
+                    "links": [],
+                    "id": "2639725",
+                    "refName": "2639725"
+                },
+                "due": 265.17,
+                "line": 0,
+                "refNum": "229677",
+                "total": 561.0,
+                "type": "Bill"
+            }
+        ],
+        "totalResults": 1
+    },
+    "billAddress": "Sancell<br>25-31 Colemans Road<br>Carrum Downs VIC 3201<br>Australia",
+    "billingAddress": {
+        "links": [
+            {
+                "rel": "self",
+                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/vendorcredit/2619917/billingAddress",
+                "method": "GET"
+            }
+        ],
+        "addr1": "25-31 Colemans Road",
+        "addressee": "Sancell",
+        "addrText": "Sancell\n25-31 Colemans Road\nCarrum Downs VIC 3201\nAustralia",
+        "city": "Carrum Downs",
+        "country": {
+            "links": [],
+            "id": "AU",
+            "refName": "Australia"
+        },
+        "override": false,
+        "state": "VIC",
+        "zip": "3201"
+    },
+    "billingAddress_text": "Sancell<br>25-31 Colemans Road<br>Carrum Downs VIC 3201<br>Australia",
+    "createdDate": "2025-06-12T06:40:00Z",
+    "currency": {
+        "links": [
+            {
+                "rel": "self",
+                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/currency/1",
+                "method": "GET"
+            }
+        ],
+        "id": "1",
+        "refName": "Australian Dollar"
+    },
+    "custbody_anz_4disputed_invoice": false,
+    "custbody_anz_7supply_chain": false,
+    "custbody_anz_credit_card_pymt": false,
+    "custbody_anz_disputed_trans": false,
+    "custbody_anz_exclude_from_tcp": false,
+    "custbody_anz_grant_payment_type": false,
+    "custbody_anz_include_in_tpar": false,
+    "custbody_anz_peppol_einv_enabled": false,
+    "custbody_anz_rcti": false,
+    "custbody_anz_txn_tpar_eligible": false,
+    "custbody_atlas_no_hdn": {
+        "links": [
+            {
+                "rel": "self",
+                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/customlist_atlas_appr_by_creator/2",
+                "method": "GET"
+            }
+        ],
+        "id": "2",
+        "refName": "No"
+    },
+    "custbody_atlas_yes_hdn": {
+        "links": [
+            {
+                "rel": "self",
+                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/customlist_atlas_appr_by_creator/1",
+                "method": "GET"
+            }
+        ],
+        "id": "1",
+        "refName": "Yes"
+    },
+    "custbody_cash_register": false,
+    "custbody_icsjg_child_jnrls": {
+        "links": [
+            {
+                "rel": "self",
+                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/vendorcredit/2619917/custbody_icsjg_child_jnrls",
+                "method": "GET"
+            }
+        ],
+        "count": 0,
+        "hasMore": false,
+        "items": [],
+        "offset": 0,
+        "totalResults": 0
+    },
+    "custbody_nondeductible_processed": false,
+    "custbody_nondeductible_ref_tran": {
+        "links": [
+            {
+                "rel": "self",
+                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/vendorcredit/2619917/custbody_nondeductible_ref_tran",
+                "method": "GET"
+            }
+        ],
+        "count": 0,
+        "hasMore": false,
+        "items": [],
+        "offset": 0,
+        "totalResults": 0
+    },
+    "custbody_pr_off_payroll": false,
+    "custbody_report_timestamp": "11/6/2025 23:37:54",
+    "custbody_sii_article_72_73": false,
+    "custbody_sii_not_reported_in_time": false,
+    "custbody_tbs_total_searchable": "265.17",
+    "entity": {
+        "links": [
+            {
+                "rel": "self",
+                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/vendor/21193",
+                "method": "GET"
+            }
+        ],
+        "id": "21193",
+        "refName": "Sancell"
+    },
+    "exchangeRate": 1.0,
+    "excludeFromGLNumbering": false,
+    "expense": {
+        "links": [
+            {
+                "rel": "self",
+                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/vendorcredit/2619917/expense",
+                "method": "GET"
+            }
+        ],
+        "items": [],
+        "totalResults": 0
+    },
+    "id": "2619917",
+    "item": {
+        "links": [
+            {
+                "rel": "self",
+                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/vendorcredit/2619917/item",
+                "method": "GET"
+            }
+        ],
+        "items": [
+            {
+                "links": [
+                    {
+                        "rel": "self",
+                        "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/vendorcredit/2619917/item/1",
+                        "method": "GET"
+                    }
+                ],
+                "amount": 241.06,
+                "class": {
+                    "links": [
+                        {
+                            "rel": "self",
+                            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/classification/1",
+                            "method": "GET"
+                        }
+                    ],
+                    "id": "1",
+                    "refName": "Protective Packaging"
+                },
+                "custcol_15529_eft_enabled": false,
+                "custcol_2663_isperson": false,
+                "custcol_statistical_value_base_curr": 0.0,
+                "description": "FGFO10MMSRS006 1.0MM FOAM 1.5M 300M",
+                "grossAmt": 265.17,
+                "inventoryDetail": {
+                    "links": [
+                        {
+                            "rel": "self",
+                            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/vendorcredit/2619917/item/1/inventoryDetail",
+                            "method": "GET"
+                        }
+                    ],
+                    "inventoryAssignment": {
+                        "links": [
+                            {
+                                "rel": "self",
+                                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/vendorcredit/2619917/item/1/inventoryDetail/inventoryAssignment",
+                                "method": "GET"
+                            }
+                        ],
+                        "items": [],
+                        "totalResults": 0
+                    }
+                },
+                "isBillable": false,
+                "item": {
+                    "links": [
+                        {
+                            "rel": "self",
+                            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/inventoryitem/2576",
+                            "method": "GET"
+                        }
+                    ],
+                    "id": "2576",
+                    "refName": "Polyfoam Wrap : PF011500300"
+                },
+                "itemType": {
+                    "links": [],
+                    "id": "InvtPart",
+                    "refName": "InvtPart"
+                },
+                "line": 1,
+                "linked": false,
+                "marginal": false,
+                "printItems": false,
+                "quantity": 2.0,
+                "rate": 120.53,
+                "tax1Amt": 24.11,
+                "taxCode": {
+                    "links": [],
+                    "id": "7",
+                    "refName": "GST:TS-AU"
+                },
+                "taxRate1": 10.0,
+                "units": "1"
+            }
+        ],
+        "totalResults": 1
+    },
+    "lastModifiedDate": "2025-06-12T06:40:00Z",
+    "location": {
+        "links": [
+            {
+                "rel": "self",
+                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/location/1",
+                "method": "GET"
+            }
+        ],
+        "id": "1",
+        "refName": "VIC Main Warehouse"
+    },
+    "memo": "po51448",
+    "postingPeriod": {
+        "links": [
+            {
+                "rel": "self",
+                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/accountingperiod/253",
+                "method": "GET"
+            }
+        ],
+        "id": "253",
+        "refName": "Jun 2025"
+    },
+    "prevDate": "2025-06-12",
+    "subsidiary": {
+        "links": [
+            {
+                "rel": "self",
+                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/subsidiary/1",
+                "method": "GET"
+            }
+        ],
+        "id": "1",
+        "refName": "STANLEY PACKAGING GROUP PTY LTD"
+    },
+    "taxTotal": 24.11,
+    "toBePrinted": false,
+    "total": 265.17,
+    "tranDate": "2025-06-12",
+    "tranId": "005026",
+    "transactionNumber": "VENDCRED101",
+    "unapplied": 0.0,
+    "userTotal": 265.17
+}

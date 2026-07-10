@@ -1,0 +1,158 @@
+Applied	
+Applied
+Decimal	
+Billing Address	
+Billing_Address
+Multi Line (Small)	
+Billing City	
+Billing_City
+Single Line	
+Billing Country	
+Billing_Country
+Single Line	
+Billing State	
+Billing_State
+Single Line	
+Billing Zip	
+Billing_Zip
+Single Line	
+Connected To	
+Connected_To__s
+MultiModuleLookup	
+Created By	
+Created_By
+Single Line	
+Credit Applications	
+Credit_Applications
+Subform	
+Credit Date	
+Credit_Date
+Date	
+Currency Type	
+Currency_Type
+Single Line	
+Email	
+Email
+Email	
+Email Opt Out	
+Email_Opt_Out
+Boolean	
+ExchangeRate	
+ExchangeRate
+Decimal	
+Location	
+Location
+Single Line	
+Modified By	
+Modified_By
+Single Line	
+Netsuite Id	
+Netsuite_Id
+Single Line	
+Posting Period	
+Posting_Period
+Pick List	
+Profile Image	
+Record_Image
+VendorCredit Image	
+Secondary Email	
+Secondary_Email
+Email	
+Tag	
+Tag
+Single Line	
+Tax Total	
+Tax_total
+Decimal	
+Total	
+Total
+Decimal	
+Tran Date	
+Tran_Date
+Date	
+Transaction Num	
+Transaction_Num
+Single Line	
+Unapplied	
+Unapplied
+Decimal	
+VatRegNum	
+VatRegNum
+Single Line	
+Vendor Credit Items	
+Vendor_Credit_Items
+Subform	
+Vendor Name	
+Vendor_Name
+Lookup	
+VendorCredit Name	
+Name
+Single Line	
+VendorCredit Owner	
+Owner
+Lookup	
+Credit Applications
+Amount	
+Amount
+Currency	
+Amount Due	
+Amount_Due
+Currency	
+Apply Date	
+Apply_Date
+Date	
+Bill	
+Bill
+Lookup	
+Created By	
+Created_By
+Single Line	
+Credit	
+Credit
+Lookup	
+Original Amount	
+Original_Amount
+Currency	
+Ref Num	
+Ref_Num
+Single Line	
+Type	
+Type
+Pick List	
+Vendor Credit Items
+Amount	
+Amount
+Formula	
+Class	
+Class
+Single Line	
+Created By	
+Created_By
+Single Line	
+GST	
+GST
+Formula	
+GST Code	
+GST_Code
+Pick List	
+Item Type	
+Item_Type
+Single Line	
+Location	
+Location
+Single Line	
+Product Description	
+Product_Description
+Single Line	
+Product Name	
+Product_Name
+Lookup	
+Quantity	
+Quantity
+Number	
+Rate	
+Rate
+Currency	
+Units	
+Units
+Pick List	

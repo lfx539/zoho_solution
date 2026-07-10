@@ -1,0 +1,196 @@
+Amount after discount	
+Amount_after_discount
+Formula	
+Balance	
+Balance
+Decimal	
+Billing City	
+Billing_City
+Single Line	
+Billing Code	
+Billing_Code
+Single Line	
+Billing Country	
+Billing_Country
+Single Line	
+Billing State	
+Billing_State
+Single Line	
+Billing Street	
+Billing_Street
+Single Line	
+Carrier	
+Carrier
+Pick List	
+Connected To	
+Connected_To__s
+MultiModuleLookup	
+Contact Name	
+Contact_Name
+Lookup	
+Created By	
+Created_By
+Single Line	
+Description	
+Description
+Multi Line (Large)	
+Discount	
+Discount
+Currency	
+Due Date	
+Due_Date
+Date	
+Email	
+Email
+Email	
+ExchangeRate	
+ExchangeRate
+Decimal	
+Excise Duty	
+Excise_Duty
+Currency	
+Grand Total	
+Grand_Total
+Formula	
+GST Adjustment	
+Adjustment
+Currency	
+GST Amt	
+GST_Amt
+Formula	
+Location	
+Location
+Single Line	
+Modified By	
+Modified_By
+Single Line	
+PO Date	
+PO_Date
+Date	
+PO Number	
+PO_Number
+Single Line	
+Purchase Items	
+Purchase_Items
+Subform	
+Purchase Order Owner	
+Owner
+Lookup	
+Requisition Number	
+Requisition_No
+Single Line	
+Sales Commission	
+Sales_Commission
+Currency	
+Shipping City	
+Shipping_City
+Single Line	
+Shipping Code	
+Shipping_Code
+Single Line	
+Shipping Country	
+Shipping_Country
+Single Line	
+Shipping State	
+Shipping_State
+Single Line	
+Shipping Street	
+Shipping_Street
+Single Line	
+Status	
+Status
+Pick List	
+Sub STotal	
+Sub_STotal
+Formula	
+Sub Total	
+Sub_Total
+Formula	
+Subject	
+Subject
+Single Line	
+Tag	
+Tag
+Single Line	
+Tax	
+Tax
+Currency	
+Terms and Conditions	
+Terms_and_Conditions
+Multi Line (Large)	
+Tracking Number	
+Tracking_Number
+Single Line	
+Vendor	
+Vendor
+Lookup	
+Vendor Name	
+Vendor_Name
+Lookup	
+Purchase Items
+Amount	
+Total
+Formula	
+Created By	
+Created_By
+Single Line	
+Description	
+Description
+Multi Line (Large)	
+Discount	
+Discount
+Currency	
+GST	
+GST
+Formula	
+isBillable	
+isBillable
+Boolean	
+isClosed	
+isClosed
+Boolean	
+isOpen	
+isOpen
+Boolean	
+Lead Time	
+Lead_Time
+Number	
+List Price	
+List_Price
+Currency	
+Product Description	
+Product_Description
+Single Line	
+Product Name	
+Product_Name
+Lookup	
+Quantity	
+Quantity
+Decimal	
+Quantity Available	
+Quantity_Available
+Decimal	
+Quantity Billed	
+Quantity_Billed
+Decimal	
+Quantity OnHand	
+Quantity_OnHand
+Decimal	
+Quantity Received	
+Quantity_Received
+Decimal	
+Rate	
+Rate
+Currency	
+STotal	
+STotal
+Currency	
+Tax	
+Tax
+Currency	
+Total	
+Net_Total
+Formula	
+Units	
+Units
+Pick List	
