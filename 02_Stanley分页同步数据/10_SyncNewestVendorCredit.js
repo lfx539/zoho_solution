@@ -1,16 +1,16 @@
-void schedule.SyncNewestAccount()
+void schedule.SyncNewestVendorCredit()
 {
-baseUrl = "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/customer";
+baseUrl = "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/vendorcredit";
 limit = 200;
-error400Ids = List();
+errorIds = List();
 totalProcessed = 0;
 totalSuccess = 0;
 totalFailed = 0;
 statusNoteId = null;
 fromDate = "01/01/2026";
 todayStr = "01/01/2026";
-// 从 Logs 读 lastSyncDate 或 lastSyncTime（仅 yyyy-mm-dd 转 MM/DD/YYYY）
-statusNotes = zoho.crm.searchRecords("Logs","(Name:equals:CustomerSyncStatus)");
+// 从 vendorLogs 读 lastSyncDate 或 lastSyncTime
+statusNotes = zoho.crm.searchRecords("vendorLogs","(Name:equals:VendorCreditSyncStatus)");
 if(statusNotes != null && statusNotes.size() > 0)
 {
 	statusNote = statusNotes.get(0);
@@ -40,7 +40,6 @@ if(statusNotes != null && statusNotes.size() > 0)
 						// 尝试作为数字解析
 						p0 = parts.get(0).toNumber();
 						p1 = parts.get(1).toNumber();
-						// 第一段<=12 且 第二段>12 则认为是 MM/DD/YYYY，转为 dd/mm/yyyy
 						if(p0 <= 12 && p1 > 12)
 						{
 							fromDate = parts.get(1) + "/" + parts.get(0) + "/" + parts.get(2);
@@ -51,21 +50,17 @@ if(statusNotes != null && statusNotes.size() > 0)
 						}
 					}
 				}
-				else
-				{
-					fromDate = lastSyncDateVal;
-				}
 			}
 			else
 			{
 				lastSyncTimeVal = statusMap.get("lastSyncTime");
 				if(lastSyncTimeVal != null && lastSyncTimeVal != "" && lastSyncTimeVal.length() >= 10)
 				{
-					part = lastSyncTimeVal.trim().substring(0,10);
-					parts = part.toList("-");
 					// 支持两种格式：
 					// 1. "2026-06-26 13:00:57" (YYYY-MM-DD)
 					// 2. "26-Jun-2026 13:00:57" (DD-Mon-YYYY)
+					part = lastSyncTimeVal.trim().substring(0,10);
+					parts = part.toList("-");
 					if(parts.size() >= 3)
 					{
 						// 检查第一部分是否是4位数（年份）
@@ -90,7 +85,8 @@ if(statusNotes != null && statusNotes.size() > 0)
 		}
 	}
 }
-// Zoho 返回 "14-Feb-2026"（DD-Mon-YYYY），转为 MM/DD/YYYY
+// Zoho 返回 "29-Jun-2026"（DD-Mon-YYYY），转为 DD/MM/YYYY 数字格式
+monthMap = {"Jan":"01","Feb":"02","Mar":"03","Apr":"04","May":"05","Jun":"06","Jul":"07","Aug":"08","Sep":"09","Oct":"10","Nov":"11","Dec":"12"};
 raw = zoho.currentdate.toString();
 if(raw != null && raw != "")
 {
@@ -100,67 +96,25 @@ if(raw != null && raw != "")
 		dd = parts.get(0);
 		mon = parts.get(1);
 		yyyy = parts.get(2);
-		mm = "01";
-		if(mon == "Jan")
+		// 将英文月份转为数字
+		if(monthMap.containsKey(mon))
 		{
-			mm = "01";
+			todayStr = dd + "/" + monthMap.get(mon) + "/" + yyyy;
 		}
-		else if(mon == "Feb")
+		else
 		{
-			mm = "02";
+			todayStr = dd + "/" + mon + "/" + yyyy;
 		}
-		else if(mon == "Mar")
-		{
-			mm = "03";
-		}
-		else if(mon == "Apr")
-		{
-			mm = "04";
-		}
-		else if(mon == "May")
-		{
-			mm = "05";
-		}
-		else if(mon == "Jun")
-		{
-			mm = "06";
-		}
-		else if(mon == "Jul")
-		{
-			mm = "07";
-		}
-		else if(mon == "Aug")
-		{
-			mm = "08";
-		}
-		else if(mon == "Sep")
-		{
-			mm = "09";
-		}
-		else if(mon == "Oct")
-		{
-			mm = "10";
-		}
-		else if(mon == "Nov")
-		{
-			mm = "11";
-		}
-		else if(mon == "Dec")
-		{
-			mm = "12";
-		}
-		todayStr = dd + "/" + mm + "/" + yyyy;
 	}
 }
 qStr = 'createdDate ON_OR_AFTER "' + fromDate + '"';
-info "开始同步最新客户，fromDate = " + fromDate;
-try 
+info "开始同步最新VendorCredits，fromDate = " + fromDate;
+try
 {
-	// 分页拉取：Deluge 无 while，用 for each + break（最多 500 页 = 100000 条）
 	allItems = List();
 	offset = 0;
 	hasMore = true;
-	pageList = {1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94,95,96,97,98,99,100,101,102,103,104,105,106,107,108,109,110,111,112,113,114,115,116,117,118,119,120,121,122,123,124,125,126,127,128,129,130,131,132,133,134,135,136,137,138,139,140,141,142,143,144,145,146,147,148,149,150,151,152,153,154,155,156,157,158,159,160,161,162,163,164,165,166,167,168,169,170,171,172,173,174,175,176,177,178,179,180,181,182,183,184,185,186,187,188,189,190,191,192,193,194,195,196,197,198,199,200,201,202,203,204,205,206,207,208,209,210,211,212,213,214,215,216,217,218,219,220,221,222,223,224,225,226,227,228,229,230,231,232,233,234,235,236,237,238,239,240,241,242,243,244,245,246,247,248,249,250,251,252,253,254,255,256,257,258,259,260,261,262,263,264,265,266,267,268,269,270,271,272,273,274,275,276,277,278,279,280,281,282,283,284,285,286,287,288,289,290,291,292,293,294,295,296,297,298,299,300,301,302,303,304,305,306,307,308,309,310,311,312,313,314,315,316,317,318,319,320,321,322,323,324,325,326,327,328,329,330,331,332,333,334,335,336,337,338,339,340,341,342,343,344,345,346,347,348,349,350,351,352,353,354,355,356,357,358,359,360,361,362,363,364,365,366,367,368,369,370,371,372,373,374,375,376,377,378,379,380,381,382,383,384,385,386,387,388,389,390,391,392,393,394,395,396,397,398,399,400,401,402,403,404,405,406,407,408,409,410,411,412,413,414,415,416,417,418,419,420,421,422,423,424,425,426,427,428,429,430,431,432,433,434,435,436,437,438,439,440,441,442,443,444,445,446,447,448,449,450,451,452,453,454,455,456,457,458,459,460,461,462,463,464,465,466,467,468,469,470,471,472,473,474,475,476,477,478,479,480,481,482,483,484,485,486,487,488,489,490,491,492,493,494,495,496,497,498,499,500};
+	pageList = {1,2,3,4,5,6,7,8,9,10};
 	for each  pageNum in pageList
 	{
 		if(hasMore == false)
@@ -177,12 +131,20 @@ try
 		];
 		if(resp == null)
 		{
-			info "获取客户列表失败，offset = " + offset;
+			info "获取VendorCredit列表失败，offset = " + offset;
 			break;
 		}
 		listData = resp.getFileContent().toJSONList().get(0);
 		items = listData.get("items");
-		hasMore = listData.get("hasMore");
+		hasMoreValue = listData.get("hasMore");
+		if(hasMoreValue != null)
+		{
+			hasMore = hasMoreValue;
+		}
+		else
+		{
+			hasMore = false;
+		}
 		if(items == null || items.size() == 0)
 		{
 			break;
@@ -200,14 +162,12 @@ try
 	}
 	if(allItems == null || allItems.size() == 0)
 	{
-		info "没有新增客户（createdDate >= " + fromDate + "）";
+		info "没有新增VendorCredit（createdDate >= " + fromDate + "）";
 		statusData = Map();
 		statusData.put("lastSyncDate",todayStr);
 		statusData.put("lastSyncTime",zoho.currenttime.toString());
-		statusData.put("hasMore",false);
-		statusData.put("mode","newest");
 		statusNoteParams = Map();
-		statusNoteParams.put("Name","CustomerSyncStatus");
+		statusNoteParams.put("Name","VendorCreditSyncStatus");
 		statusNoteParams.put("Log_Content",statusData.toString());
 		statusDataList = List();
 		statusDataList.add(statusNoteParams);
@@ -217,7 +177,7 @@ try
 		{
 			invokeurl
 			[
-				url :"https://www.zohoapis.com.au/crm/v8/Logs/" + statusNoteId
+				url :"https://www.zohoapis.com.au/crm/v8/vendorLogs/" + statusNoteId
 				type :PUT
 				parameters:statusRequestParams.toString()
 				connection:"crm"
@@ -227,55 +187,64 @@ try
 		{
 			invokeurl
 			[
-				url :"https://www.zohoapis.com.au/crm/v8/Logs"
+				url :"https://www.zohoapis.com.au/crm/v8/vendorLogs"
 				type :POST
 				parameters:statusRequestParams.toString()
 				connection:"crm"
 			]
 		}
-		info "CustomerSyncStatus 已更新，lastSyncDate = " + todayStr;
+		info "VendorCreditSyncStatus 已更新，lastSyncDate = " + todayStr;
 		return;
 	}
-	info "共获取 " + allItems.size() + " 条客户，开始逐条同步";
+	info "共获取 " + allItems.size() + " 条VendorCredit，开始逐条同步";
 	for each  item in allItems
 	{
-		customerId = item.get("id");
-		try 
+		creditId = item.get("id");
+		try
 		{
-			syncResult = standalone.SyncSingleCustomer(customerId);
+			syncResult = standalone.SyncSingleVendorCredit(creditId);
 			isSuccess = false;
 			errorMsg = "未知错误";
 			if(syncResult != null)
 			{
-				res = syncResult.get("res");
-				if(res != null)
+				// 先检查是否有错误信息
+				syncError = syncResult.get("error");
+				if(syncError != null)
 				{
-					data = res.get("data");
-					if(data != null && data.size() > 0)
+					errorMsg = syncError;
+				}
+				else
+				{
+					res = syncResult.get("res");
+					if(res != null)
 					{
-						firstItem = data.get(0);
-						if(firstItem != null)
+						data = res.get("data");
+						if(data != null && data.size() > 0)
 						{
-							status = firstItem.get("status");
-							code = firstItem.get("code");
-							message = firstItem.get("message");
-							if(status != null && status == "success")
+							firstItem = data.get(0);
+							if(firstItem != null)
 							{
-								isSuccess = true;
-							}
-							else if(code != null && code == "SUCCESS")
-							{
-								isSuccess = true;
-							}
-							else
-							{
-								if(message != null)
+								status = firstItem.get("status");
+								code = firstItem.get("code");
+								message = firstItem.get("message");
+								if(status != null && status == "success")
 								{
-									errorMsg = message;
+									isSuccess = true;
 								}
-								else if(code != null)
+								else if(code != null && code == "SUCCESS")
 								{
-									errorMsg = code;
+									isSuccess = true;
+								}
+								else
+								{
+									if(message != null)
+									{
+										errorMsg = message;
+									}
+									else if(code != null)
+									{
+										errorMsg = code;
+									}
 								}
 							}
 						}
@@ -285,30 +254,23 @@ try
 			if(isSuccess == true)
 			{
 				totalSuccess = totalSuccess + 1;
-				totalProcessed = totalProcessed + 1;
 			}
 			else
 			{
-				error400Ids.add(customerId);
+				errorIds.add(creditId);
 				totalFailed = totalFailed + 1;
-				totalProcessed = totalProcessed + 1;
-				info "客户同步失败: " + customerId + " - " + errorMsg;
 			}
+			totalProcessed = totalProcessed + 1;
 		}
 		catch (e)
 		{
-			error400Ids.add(customerId);
+			errorIds.add(creditId);
 			totalFailed = totalFailed + 1;
 			totalProcessed = totalProcessed + 1;
-			info "客户处理异常: " + customerId + " - " + e;
 		}
 	}
 	info "批量同步完成，本次处理: " + totalProcessed + " 条（成功: " + totalSuccess + "，失败: " + totalFailed + "）";
-	if(error400Ids != null && error400Ids.size() > 0)
-	{
-		info "400错误客户ID（共 " + error400Ids.size() + " 条）: " + error400Ids;
-		automation.saveErrorIdsToLogs(error400Ids.toString(),error400Ids.size(),0,totalProcessed,totalSuccess,totalFailed);
-	}
+	// 更新状态
 	statusData = Map();
 	statusData.put("lastSyncDate",todayStr);
 	statusData.put("lastSyncTime",zoho.currenttime.toString());
@@ -318,7 +280,7 @@ try
 	statusData.put("lastBatchSuccess",totalSuccess);
 	statusData.put("lastBatchFailed",totalFailed);
 	statusNoteParams = Map();
-	statusNoteParams.put("Name","CustomerSyncStatus");
+	statusNoteParams.put("Name","VendorCreditSyncStatus");
 	statusNoteParams.put("Log_Content",statusData.toString());
 	statusDataList = List();
 	statusDataList.add(statusNoteParams);
@@ -328,7 +290,7 @@ try
 	{
 		invokeurl
 		[
-			url :"https://www.zohoapis.com.au/crm/v8/Logs/" + statusNoteId
+			url :"https://www.zohoapis.com.au/crm/v8/vendorLogs/" + statusNoteId
 			type :PUT
 			parameters:statusRequestParams.toString()
 			connection:"crm"
@@ -338,16 +300,15 @@ try
 	{
 		invokeurl
 		[
-			url :"https://www.zohoapis.com.au/crm/v8/Logs"
+			url :"https://www.zohoapis.com.au/crm/v8/vendorLogs"
 			type :POST
 			parameters:statusRequestParams.toString()
 			connection:"crm"
 		]
 	}
-	info "CustomerSyncStatus 已更新，lastSyncDate = " + todayStr;
 }
 catch (e)
 {
-	info "同步最新客户异常: " + e;
+	info "同步最新VendorCredit异常: " + e;
 }
 }

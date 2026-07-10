@@ -64,9 +64,43 @@ else
 {
 	invoiceParams.put("Memo",invoiceMemo);
 }
-invoiceParams.put("Date",invoiceDetail.get("dueDate"));
+// 添加日期字段：Invoice_Date 对应 tranDate，Due_Date 对应 dueDate
+invoiceParams.put("Invoice_Date",invoiceDetail.get("tranDate"));
+invoiceParams.put("Due_Date",invoiceDetail.get("dueDate"));
 invoiceParams.put("Shipping_Cost",invoiceDetail.get("shippingCost"));
 invoiceParams.put("Discount_Total",invoiceDetail.get("discountTotal"));
+// 添加 SalesRep 作为 Invoice Owner
+invoiceOwner = invoiceDetail.get("salesRep");
+if(invoiceOwner != null)
+{
+	invoiceOwnerName = invoiceOwner.get("refName");
+	invoiceOwnerID = standalone.mapSalesRep(invoiceOwnerName);
+	// 只有当返回有效ID时才设置，否则使用默认值
+	if(invoiceOwnerID != null && invoiceOwnerID != "")
+	{
+		invoiceParams.put("Owner",invoiceOwnerID);
+	}
+	else
+	{
+		// 未匹配到用户，默认设为Sean Ren
+		invoiceParams.put("Owner","102317000000370001");
+	}
+}
+else
+{
+	// 没有salesRep时，默认设为Sean Ren
+	invoiceParams.put("Owner","102317000000370001");
+}
+// 添加 Status 字段
+invoiceStatus = invoiceDetail.get("status");
+if(invoiceStatus != null)
+{
+	statusRefName = invoiceStatus.get("refName");
+	if(statusRefName != null && statusRefName != "")
+	{
+		invoiceParams.put("Status",statusRefName);
+	}
+}
 // 获取Account信息
 entity = invoiceDetail.get("entity");
 if(entity != null)
@@ -109,7 +143,6 @@ if(invItems != null)
 			if(itemObj != null)
 			{
 				itemId = itemObj.get("id");
-				info itemId;
 				itemRecord = zoho.crm.searchRecords("Products","(Internal_ID:equals:" + itemId + ")");
 				if(itemRecord != null && itemRecord.size() > 0)
 				{
@@ -117,17 +150,33 @@ if(invItems != null)
 					prodListParams = Map();
 					prodListParams.put("Product_Name",{"id":recordDetail.get("id")});
 					itemRate = item.get("rate");
-					if(itemRate != null)
-					{
-						itemRate = round(itemRate,2);
-					}
-					else
+					if(itemRate == null)
 					{
 						itemRate = 0;
 					}
 					prodListParams.put("Rate",itemRate);
 					prodListParams.put("Quantity",item.get("quantity"));
 					prodListParams.put("Ordered",item.get("quantityOrdered"));
+					// 处理 SAmount：两种情况同步 amount 到 SAmount
+					// 1. surcharge 产品
+					// 2. rate 为空但 amount 有值（老数据情况）
+					itemName = itemObj.get("refName");
+					itemAmount = item.get("amount");
+					shouldSyncAmount = false;
+					// 情况1：surcharge 产品
+					if(itemName != null && itemName.toLowerCase().contains("surcharge"))
+					{
+						shouldSyncAmount = true;
+					}
+					// 情况2：rate 为空但 amount 有值
+					if(item.get("rate") == null && itemAmount != null)
+					{
+						shouldSyncAmount = true;
+					}
+					if(shouldSyncAmount && itemAmount != null)
+					{
+						prodListParams.put("SAmount",round(itemAmount,2));
+					}
 					// 处理Price Level
 					price = item.get("price");
 					if(price != null)

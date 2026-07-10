@@ -1,12 +1,48 @@
 string standalone.mapSalesRep(String name)
 {
-info name;
 if(name == null || name.trim() == "")
 {
 	return "";
 }
-// 从 NetSuite 名称提取关键部分（按空格拆分，用于模糊匹配）
 nameTrim = name.trim();
+
+// 特殊映射：DALLIAN EVANS、jack、yilin 映射到 Cindy Song
+nameLower = nameTrim.toLowerCase();
+if(nameLower.contains("dallian") || nameLower.contains("jack") || nameLower.contains("yilin"))
+{
+	// 尝试查找 Cindy Song 的用户ID
+	resp = invokeurl
+	[
+		url :"https://www.zohoapis.com.au/crm/v8/users?type=AllUsers&per_page=200"
+		type :GET
+		connection:"crm"
+	];
+	if(resp != null)
+	{
+		users = resp.get("users");
+		if(users != null && users.size() > 0)
+		{
+			for each  user in users
+			{
+				fullName = user.get("full_name");
+				if(fullName != null && fullName.toLowerCase().contains("cindy"))
+				{
+					userId = user.get("id");
+					if(userId != null && userId != "")
+					{
+						info "Mapped " + name + " to Cindy Song: " + userId;
+						return userId;
+					}
+				}
+			}
+		}
+	}
+	// 如果找不到 Cindy Song，返回默认值（Sean Ren）
+	info "未找到 Cindy Song，使用默认ID";
+	return "102317000000370001";
+}
+
+// 从 NetSuite 名称提取关键部分（按空格拆分，用于模糊匹配）
 parts = nameTrim.toList(" ");
 keywords = List();
 for each  p in parts

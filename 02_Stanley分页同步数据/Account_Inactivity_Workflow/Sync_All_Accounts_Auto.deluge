@@ -1,0 +1,221 @@
+void schedule.SyncAllAccountsActivity()
+{
+perPage = 200;
+totalProcessed = 0;
+totalSuccess = 0;
+totalFailed = 0;
+today = zoho.currentdate;
+
+info "========== 开始批量处理 Account ==========";
+info "每页数量: " + perPage;
+
+// 从 CRM Logs 读取上次处理到的页码
+lastProcessedPage = 0;
+try
+{
+    lastLog = zoho.crm.searchRecords("Logs", "(Name:starts_with:Account_Activity_Sync_Page_)");
+    if(lastLog != null && lastLog.size() > 0)
+    {
+        for each log in lastLog
+        {
+            logName = log.get("Name");
+            if(logName != null && logName.startsWith("Account_Activity_Sync_Page_"))
+            {
+                pageStr = logName.substring(27);
+                pageNum = pageStr.toLong();
+                if(pageNum > lastProcessedPage)
+                {
+                    lastProcessedPage = pageNum;
+                }
+            }
+        }
+    }
+}
+catch(e)
+{
+    info "读取上次处理页码失败: " + e;
+}
+
+startPage = lastProcessedPage + 1;
+
+info "处理第 " + startPage + " 页";
+info "========================================";
+
+pageNum = startPage;
+
+info "";
+info "========== 处理第 " + pageNum + " 页 ==========";
+
+accounts = zoho.crm.getRecords("Accounts", pageNum, perPage);
+
+if(accounts == null || accounts.size() == 0)
+{
+    info "第 " + pageNum + " 页没有数据，所有 Account 已处理完成";
+    info "========================================";
+    return;
+}
+
+info "获取到 " + accounts.size() + " 个 Account";
+
+pageSuccessCount = 0;
+pageFailCount = 0;
+pageFailedIds = List();
+pageErrorDetails = List();
+
+for each account in accounts
+{
+    accountId = account.get("id");
+    accountName = account.get("Account_Name");
+
+    allActivityDates = List();
+
+    // 获取 Tasks
+    tasks = zoho.crm.getRelatedRecords("Tasks", "Accounts", accountId);
+    if(tasks != null)
+    {
+        for each task in tasks
+        {
+            dueDate = task.get("Due_Date");
+            if(dueDate != null)
+            {
+                allActivityDates.add(dueDate);
+            }
+        }
+    }
+
+    // 获取 Calls
+    calls = zoho.crm.getRelatedRecords("Calls", "Accounts", accountId);
+    if(calls != null)
+    {
+        for each call in calls
+        {
+            callStartTime = call.get("Call_Start_Time");
+            if(callStartTime != null)
+            {
+                allActivityDates.add(callStartTime);
+            }
+        }
+    }
+
+    // 获取 Events
+    events = zoho.crm.getRelatedRecords("Events", "Accounts", accountId);
+    if(events != null)
+    {
+        for each event in events
+        {
+            startDateTime = event.get("Start_DateTime");
+            if(startDateTime != null)
+            {
+                allActivityDates.add(startDateTime);
+            }
+        }
+    }
+
+    lastActivityDate = null;
+    daysSinceLastActivity = 0;
+
+    if(allActivityDates.size() > 0)
+    {
+        sortedDates = allActivityDates.sort(false);
+        lastActivityDate = sortedDates.get(0);
+
+        try
+        {
+            dateStr = lastActivityDate.toString();
+            if(dateStr.contains("T"))
+            {
+                datePart = dateStr.substring(0, 10);
+                lastDate = datePart.toDate("yyyy-MM-dd");
+            }
+            else if(dateStr.contains("-") && dateStr.length() >= 10)
+            {
+                lastDate = dateStr.toDate("yyyy-MM-dd");
+            }
+            else
+            {
+                lastDate = lastActivityDate;
+            }
+
+            diffInMillis = today.toLong() - lastDate.toLong();
+            daysSinceLastActivity = (diffInMillis / (1000 * 60 * 60 * 24)).round(0);
+        }
+        catch(e)
+        {
+            daysSinceLastActivity = 999;
+        }
+    }
+    else
+    {
+        daysSinceLastActivity = 999;
+    }
+
+    try
+    {
+        updateMap = Map();
+        updateMap.put("Last_Activity_Date", lastActivityDate);
+        updateMap.put("Days_Since_Last_Activity", daysSinceLastActivity);
+
+        zoho.crm.updateRecord("Accounts", accountId.toString(), updateMap);
+
+        pageSuccessCount = pageSuccessCount + 1;
+        totalSuccess = totalSuccess + 1;
+    }
+    catch(e)
+    {
+        pageFailCount = pageFailCount + 1;
+        pageFailedIds.add(accountId.toString());
+        pageErrorDetails.add(accountId + " | " + accountName + " | Error: " + e);
+        totalFailed = totalFailed + 1;
+    }
+}
+
+totalProcessed = totalProcessed + accounts.size();
+
+// 保存该页的日志
+try
+{
+    logContent = Map();
+    logContent.put("Page", pageNum);
+    logContent.put("Processed_Time", zoho.currenttime);
+    logContent.put("Total_Processed", accounts.size());
+    logContent.put("Success_Count", pageSuccessCount);
+    logContent.put("Failed_Count", pageFailCount);
+
+    if(pageFailedIds.size() > 0)
+    {
+        logContent.put("Failed_Ids", pageFailedIds.toString());
+        logContent.put("Error_Details", pageErrorDetails.toString());
+    }
+
+    logMap = Map();
+    logMap.put("Name", "Account_Activity_Sync_Page_" + pageNum);
+    logMap.put("Log_Content", logContent.toString());
+
+    zoho.crm.createRecord("Logs", logMap);
+}
+catch(e)
+{
+    info "保存日志失败: " + e;
+}
+
+info "第 " + pageNum + " 页完成 - 成功: " + pageSuccessCount + ", 失败: " + pageFailCount;
+
+info "";
+info "========================================";
+info "本页处理完成！";
+info "处理页码: " + pageNum;
+info "处理数量: " + totalProcessed;
+info "成功: " + totalSuccess;
+info "失败: " + totalFailed;
+info "========================================";
+
+if(pageFailedIds.size() > 0)
+{
+    info "";
+    info "失败的 Account 数量: " + pageFailedIds.size();
+}
+
+info "";
+info "下次执行将从第 " + (pageNum + 1) + " 页开始";
+info "========================================";
+}

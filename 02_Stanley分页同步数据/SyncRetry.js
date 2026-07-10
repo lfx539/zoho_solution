@@ -9,17 +9,9 @@ info "开始重新同步错误产品，共 " + errorIds.size() + " 条";
 for each  productId in errorIds
 {
 	info "处理产品ID: " + productId;
-	// 1. 检查Zoho CRM Products中是否已存在该产品
+	// 1. 直接执行同步（SyncSingle函数内部会判断是创建还是更新）
 	// 注意：productId是NetSuite的ID，需要转换为字符串进行查询
 	productIdStr = productId.toString();
-	checkDetail = zoho.crm.searchRecords(moduleName,"(" + queryName + ":equals:" + productIdStr + ")");
-	if(checkDetail != null && checkDetail.size() > 0)
-	{
-		// 产品已存在，跳过
-		successIds.add(productId);
-		continue;
-	}
-	// 2. 产品不存在，执行同步
 	try 
 	{
 		if(moduleName == "Products")
@@ -49,6 +41,30 @@ for each  productId in errorIds
 		else if(moduleName == "Credit_Memo")
 		{
 			syncResult = standalone.SyncSingleCreditMemo(productId);
+		}
+		else if(moduleName == "Vendors")
+		{
+			syncResult = standalone.SyncSingleVendor(productId);
+		}
+		else if(moduleName == "Purchase_Orders")
+		{
+			syncResult = standalone.SyncSinglePO(productId);
+		}
+		else if(moduleName == "VendorBill")
+		{
+			syncResult = standalone.SyncSingleVendorBill(productId);
+		}
+		else if(moduleName == "ItemReceipt")
+		{
+			syncResult = standalone.SyncSingleItemReceipt(productId);
+		}
+		else if(moduleName == "VendorPayment")
+		{
+			syncResult = standalone.SyncSingleVendorPayment(productId);
+		}
+		else if(moduleName == "VendorCredit")
+		{
+			syncResult = standalone.SyncSingleVendorCredit(productId);
 		}
 		// 解析返回结果
 		isSuccess = false;

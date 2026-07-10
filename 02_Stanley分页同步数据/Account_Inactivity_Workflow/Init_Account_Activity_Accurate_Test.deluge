@@ -1,0 +1,246 @@
+string standalone.InitActivityDate()
+{
+// ============================================================================
+// 函数名称：Init_Account_Activity_Accurate_Test
+// 功能：准确计算 Account 的无活动天数
+// 测试版：只处理前 10 个 Account
+// 准确性：只计算 Tasks, Events, Calls（不包括 Notes, Emails）
+// API：使用 Tasks, Calls, Events 分别获取数据
+// ============================================================================
+
+// 获取 Account 列表
+accounts = zoho.crm.getRecords("Accounts", 1, 10);
+
+successCount = 0;
+failCount = 0;
+today = zoho.currentdate;
+
+// 记录处理结果
+successIds = List();
+failedIds = List();
+successDetails = List();
+
+info "========== 开始测试（准确版）==========";
+info "总共获取到 " + accounts.size() + " 个 Account";
+
+for each account in accounts
+{
+    accountId = account.get("id");
+    accountName = account.get("Account_Name");
+    
+    info "----------------------------------------";
+    info "处理 Account: " + accountName + " (ID: " + accountId + ")";
+    
+    // 收集所有活动日期
+    allActivityDates = List();
+    
+    // -----------------------------------------------------------
+    // 1. 获取 Tasks（包括 Open 和 Completed）
+    // -----------------------------------------------------------
+    try
+    {
+        tasks = zoho.crm.getRelatedRecords("Tasks", "Accounts", accountId);
+        
+        if(tasks != null && tasks.size() > 0)
+        {
+            info "  找到 " + tasks.size() + " 个 Tasks";
+            
+            for each task in tasks
+            {
+                dueDate = task.get("Due_Date");
+                
+                if(dueDate != null)
+                {
+                    allActivityDates.add(dueDate);
+                    info "    - Task: " + task.get("Subject") + " | Due_Date: " + dueDate + " | Status: " + task.get("Status");
+                }
+            }
+        }
+        else
+        {
+            info "  没有找到 Tasks";
+        }
+    }
+    catch(e)
+    {
+        info "  获取 Tasks 出错: " + e;
+    }
+    
+    // -----------------------------------------------------------
+    // 2. 获取 Calls（包括 Open 和 Completed）
+    // -----------------------------------------------------------
+    try
+    {
+        calls = zoho.crm.getRelatedRecords("Calls", "Accounts", accountId);
+        
+        if(calls != null && calls.size() > 0)
+        {
+            info "  找到 " + calls.size() + " 个 Calls";
+            
+            for each call in calls
+            {
+                callStartTime = call.get("Call_Start_Time");
+                
+                if(callStartTime != null)
+                {
+                    allActivityDates.add(callStartTime);
+                    info "    - Call: " + call.get("Subject") + " | Call_Start_Time: " + callStartTime;
+                }
+            }
+        }
+        else
+        {
+            info "  没有找到 Calls";
+        }
+    }
+    catch(e)
+    {
+        info "  获取 Calls 出错: " + e;
+    }
+    
+    // -----------------------------------------------------------
+    // 3. 获取 Events（包括 Open 和 Completed）
+    // -----------------------------------------------------------
+    try
+    {
+        events = zoho.crm.getRelatedRecords("Events", "Accounts", accountId);
+        
+        if(events != null && events.size() > 0)
+        {
+            info "  找到 " + events.size() + " 个 Events";
+            
+            for each event in events
+            {
+                startDateTime = event.get("Start_DateTime");
+                
+                if(startDateTime != null)
+                {
+                    allActivityDates.add(startDateTime);
+                    info "    - Event: " + event.get("Subject") + " | Start_DateTime: " + startDateTime;
+                }
+            }
+        }
+        else
+        {
+            info "  没有找到 Events";
+        }
+    }
+    catch(e)
+    {
+        info "  获取 Events 出错: " + e;
+    }
+    
+    // -----------------------------------------------------------
+    // 4. 计算最后活动日期
+    // -----------------------------------------------------------
+    lastActivityDate = null;
+    daysSinceLastActivity = 0;
+    
+    if(allActivityDates.size() > 0)
+    {
+        // 找出最新日期（排序降序，最新的在前面）
+        sortedDates = allActivityDates.sort(false);  // false = 降序
+        lastActivityDate = sortedDates.get(0);
+        
+        // 计算天数差
+        try
+        {
+            lastDate = null;
+            
+            // 尝试转换为字符串并检查格式
+            dateStr = lastActivityDate.toString();
+            
+            if(dateStr.contains("T"))
+            {
+                // ISO 格式：2026-06-05T16:06:26+10:00
+                datePart = dateStr.substring(0, 10);
+                lastDate = datePart.toDate("yyyy-MM-dd");
+            }
+            else if(dateStr.contains("-") && dateStr.length() >= 10)
+            {
+                // 格式：2026-04-14
+                lastDate = dateStr.toDate("yyyy-MM-dd");
+            }
+            else
+            {
+                // 尝试直接转换为 Date
+                lastDate = lastActivityDate;
+            }
+            
+            diffInMillis = today.toLong() - lastDate.toLong();
+            daysSinceLastActivity = (diffInMillis / (1000 * 60 * 60 * 24)).round(0);
+        }
+        catch(e)
+        {
+            info "  日期计算出错: " + e;
+            daysSinceLastActivity = 999;
+        }
+        
+        info "  最后活动日期: " + lastActivityDate;
+        info "  无活动天数: " + daysSinceLastActivity + " 天";
+    }
+    else
+    {
+        // 没有任何活动记录
+        daysSinceLastActivity = 999;
+        lastActivityDate = null;
+        info "  该 Account 没有任何 Task/Event/Call 活动记录";
+    }
+    
+    // -----------------------------------------------------------
+    // 5. 更新 Account
+    // -----------------------------------------------------------
+    try
+    {
+        updateMap = Map();
+        updateMap.put("Last_Activity_Date", lastActivityDate);
+        updateMap.put("Days_Since_Last_Activity", daysSinceLastActivity);
+        
+        zoho.crm.updateRecord("Accounts", accountId.toString(), updateMap);
+        
+        successCount = successCount + 1;
+        successIds.add(accountId.toString());
+        
+        detail = accountId + " | " + accountName + " | LastDate: " + lastActivityDate + " | Days: " + daysSinceLastActivity;
+        successDetails.add(detail);
+        
+        info "  ✓ 更新成功";
+    }
+    catch(e)
+    {
+        failCount = failCount + 1;
+        failedIds.add(accountId.toString());
+        info "  ✗ 更新失败: " + e;
+    }
+}
+
+info "========================================";
+info "测试完成！";
+info "成功: " + successCount + " 个";
+info "失败: " + failCount + " 个";
+info "========================================";
+
+// 打印成功处理的 Account ID 列表
+if(successIds.size() > 0)
+{
+    info "";
+    info "========== 成功处理的 Account 列表 ==========";
+    for each detail in successDetails
+    {
+        info detail;
+    }
+}
+
+info "";
+info "========================================";
+info "验证提示：";
+info "1. 复制上面的 Account ID";
+info "2. 在 Zoho CRM 中搜索该 ID";
+info "3. 检查以下字段值：";
+info "   - Last_Activity_Date";
+info "   - Days_Since_Last_Activity";
+info "4. 验证 Tasks/Calls/Events 是否正确";
+info "========================================";
+
+return "Success: " + successCount + ", Failed: " + failCount;
+

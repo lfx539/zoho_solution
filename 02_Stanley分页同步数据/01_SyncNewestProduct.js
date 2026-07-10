@@ -26,15 +26,27 @@ if(statusNotes != null && statusNotes.size() > 0)
 				parts = lastSyncDateVal.toList("/");
 				if(parts.size() >= 3)
 				{
-					p0 = parts.get(0).toNumber();
-					p1 = parts.get(1).toNumber();
-					if(p0 <= 12 && p1 > 12)
+					// 检查是否是 DD/Mon/YYYY 格式（如 29/Jun/2026）
+					monthNames = {"Jan":"01","Feb":"02","Mar":"03","Apr":"04","May":"05","Jun":"06","Jul":"07","Aug":"08","Sep":"09","Oct":"10","Nov":"11","Dec":"12"};
+					p1Str = parts.get(1);
+					if(monthNames.containsKey(p1Str))
 					{
-						fromDate = parts.get(1) + "/" + parts.get(0) + "/" + parts.get(2);
+						// DD/Mon/YYYY 格式，转换为 DD/MM/YYYY
+						fromDate = parts.get(0) + "/" + monthNames.get(p1Str) + "/" + parts.get(2);
 					}
 					else
 					{
-						fromDate = lastSyncDateVal;
+						// 尝试作为数字解析
+						p0 = parts.get(0).toNumber();
+						p1 = parts.get(1).toNumber();
+						if(p0 <= 12 && p1 > 12)
+						{
+							fromDate = parts.get(1) + "/" + parts.get(0) + "/" + parts.get(2);
+						}
+						else
+						{
+							fromDate = lastSyncDateVal;
+						}
 					}
 				}
 				else
@@ -49,9 +61,27 @@ if(statusNotes != null && statusNotes.size() > 0)
 				{
 					part = lastSyncTimeVal.trim().substring(0,10);
 					parts = part.toList("-");
-					if(parts.size() >= 3 && parts.get(0).length() == 4 && parts.get(1).length() == 2 && parts.get(2).length() == 2)
+					// 支持两种格式：
+					// 1. "2026-06-26 13:00:57" (YYYY-MM-DD)
+					// 2. "26-Jun-2026 13:00:57" (DD-Mon-YYYY)
+					if(parts.size() >= 3)
 					{
-						fromDate = parts.get(2) + "/" + parts.get(1) + "/" + parts.get(0);
+						// 检查第一部分是否是4位数（年份）
+						if(parts.get(0).length() == 4)
+						{
+							// YYYY-MM-DD 格式
+							fromDate = parts.get(2) + "/" + parts.get(1) + "/" + parts.get(0);
+						}
+						else
+						{
+							// DD-Mon-YYYY 格式
+							monthNames = {"Jan":"01","Feb":"02","Mar":"03","Apr":"04","May":"05","Jun":"06","Jul":"07","Aug":"08","Sep":"09","Oct":"10","Nov":"11","Dec":"12"};
+							p1Str = parts.get(1);
+							if(monthNames.containsKey(p1Str))
+							{
+								fromDate = parts.get(0) + "/" + monthNames.get(p1Str) + "/" + parts.get(2);
+							}
+						}
 					}
 				}
 			}
@@ -120,7 +150,6 @@ if(raw != null && raw != "")
 	}
 }
 qStr = 'createdDate ON_OR_AFTER "' + fromDate + '"';
-encodedQ = standalone.EncodeQForOAuth(qStr);
 info "开始同步最新产品，fromDate = " + fromDate;
 try 
 {
@@ -138,7 +167,7 @@ try
 		headers = {"Content-Type":"application/json","Authorization":auth};
 		resp = invokeurl
 		[
-			url :baseUrl + "?limit=" + limit + "&offset=" + offset + "&q=" + encodedQ
+			url :baseUrl + "?limit=" + limit + "&offset=" + offset + "&q=" + qStr
 			type :GET
 			headers:headers
 		];

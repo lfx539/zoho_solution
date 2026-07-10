@@ -101,6 +101,11 @@ if(soOwner != null)
 	info soOwnerID;
 	soParams.put("Owner",soOwnerID);
 }
+else
+{
+	// 没有salesRep时，默认设为Sean Ren
+	soParams.put("Owner","102317000000370001");
+}
 // 3. 构建子表数据
 prodList = List();
 soItems = soDetail.get("item");

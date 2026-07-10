@@ -1,0 +1,244 @@
+string standalone.InitActivityDate()
+{
+// ============================================================================
+// 函数名称：Weekly_Check_Accurate
+// 功能：每周检查并发送无活动提醒邮件
+// 触发方式：每周定时执行（建议周一上午 9:00）
+// 准确性：使用 Tasks, Calls, Events API，确保数据准确
+// ============================================================================
+
+// 获取 Account 列表（每次处理 200 个）
+accounts = zoho.crm.getRecords("Accounts", 1, 200);
+
+today = zoho.currentdate;
+alert60Count = 0;
+alert90Count = 0;
+processedCount = 0;
+errorCount = 0;
+
+info "========== 开始每周检查 ==========";
+info "检查日期: " + today;
+
+for each account in accounts
+{
+    accountId = account.get("id");
+    accountName = account.get("Account_Name");
+    accountOwner = account.get("Owner");
+    
+    // 收集所有活动日期
+    allActivityDates = List();
+    
+    // 获取 Tasks
+    try
+    {
+        tasks = zoho.crm.getRelatedRecords("Tasks", "Accounts", accountId);
+        if(tasks != null)
+        {
+            for each task in tasks
+            {
+                dueDate = task.get("Due_Date");
+                if(dueDate != null)
+                {
+                    allActivityDates.add(dueDate);
+                }
+            }
+        }
+    }
+    catch(e)
+    {
+        // 忽略错误
+    }
+    
+    // 获取 Calls
+    try
+    {
+        calls = zoho.crm.getRelatedRecords("Calls", "Accounts", accountId);
+        if(calls != null)
+        {
+            for each call in calls
+            {
+                callStartTime = call.get("Call_Start_Time");
+                if(callStartTime != null)
+                {
+                    allActivityDates.add(callStartTime);
+                }
+            }
+        }
+    }
+    catch(e)
+    {
+        // 忽略错误
+    }
+    
+    // 获取 Events
+    try
+    {
+        events = zoho.crm.getRelatedRecords("Events", "Accounts", accountId);
+        if(events != null)
+        {
+            for each event in events
+            {
+                startDateTime = event.get("Start_DateTime");
+                if(startDateTime != null)
+                {
+                    allActivityDates.add(startDateTime);
+                }
+            }
+        }
+    }
+    catch(e)
+    {
+        // 忽略错误
+    }
+    
+    // 计算最后活动日期和无活动天数
+    lastActivityDate = null;
+    daysSinceLastActivity = 0;
+    
+    if(allActivityDates.size() > 0)
+    {
+        sortedDates = allActivityDates.sort(false);  // false = 降序（从新到旧）
+        lastActivityDate = sortedDates.get(0);
+        
+        try
+        {
+            dateStr = lastActivityDate.toString();
+            if(dateStr.contains("T"))
+            {
+                datePart = dateStr.substring(0, 10);
+                lastDate = datePart.toDate("yyyy-MM-dd");
+            }
+            else if(dateStr.contains("-") && dateStr.length() >= 10)
+            {
+                lastDate = dateStr.toDate("yyyy-MM-dd");
+            }
+            else
+            {
+                lastDate = lastActivityDate;
+            }
+            
+            diffInMillis = today.toLong() - lastDate.toLong();
+            daysSinceLastActivity = (diffInMillis / (1000 * 60 * 60 * 24)).round(0);
+        }
+        catch(e)
+        {
+            daysSinceLastActivity = 999;
+        }
+    }
+    else
+    {
+        daysSinceLastActivity = 999;
+    }
+    
+    // 更新字段
+    try
+    {
+        updateMap = Map();
+        updateMap.put("Last_Activity_Date", lastActivityDate);
+        updateMap.put("Days_Since_Last_Activity", daysSinceLastActivity);
+        zoho.crm.updateRecord("Accounts", accountId.toString(), updateMap);
+        processedCount = processedCount + 1;
+    }
+    catch(e)
+    {
+        errorCount = errorCount + 1;
+    }
+    
+    // -----------------------------------------------------------
+    // 60天提醒：发送邮件给 Account Owner
+    // -----------------------------------------------------------
+    if(daysSinceLastActivity == 60)
+    {
+        if(accountOwner != null)
+        {
+            ownerEmail = accountOwner.get("email");
+            ownerName = accountOwner.get("name");
+            
+            if(ownerEmail != null && ownerEmail != "")
+            {
+                try
+                {
+                    sendMailMap = Map();
+                    sendMailMap.put("from", "admin@yourcompany.com");
+                    sendMailMap.put("to", ownerEmail);
+                    sendMailMap.put("subject", "【提醒】客户 " + accountName + " 已60天无活动");
+                    sendMailMap.put("message", "尊敬的 " + ownerName + "：\n\n您负责的客户「" + accountName + "」已经 60 天没有任何活动记录。\n\n最后活动日期：" + lastActivityDate + "\n无活动天数：" + daysSinceLastActivity + " 天\n\n建议您尽快跟进该客户。\n\n此致\nCRM 系统自动通知");
+                    
+                    zoho.crm.sendMail(accountId, "Accounts", sendMailMap);
+                    
+                    alert60Count = alert60Count + 1;
+                    info "✓ 发送60天提醒: " + accountName + " -> " + ownerEmail;
+                }
+                catch(e)
+                {
+                    info "✗ 发送60天邮件失败: " + accountName + " - " + e;
+                }
+            }
+        }
+    }
+    
+    // -----------------------------------------------------------
+    // 90天提醒：发送邮件给 Cindy
+    // -----------------------------------------------------------
+    if(daysSinceLastActivity == 90)
+    {
+        // Cindy 的邮箱地址（请根据实际情况修改）
+        cindyEmail = "cindy@yourcompany.com";
+        
+        try
+        {
+            ownerName = "";
+            if(accountOwner != null)
+            {
+                ownerName = accountOwner.get("name");
+            }
+            
+            sendMailMap = Map();
+            sendMailMap.put("from", "admin@yourcompany.com");
+            sendMailMap.put("to", cindyEmail);
+            sendMailMap.put("subject", "【严重】客户 " + accountName + " 已90天无活动");
+            sendMailMap.put("message", "Dear Cindy：\n\n以下客户已经 90 天没有任何活动记录：\n\n客户名称：" + accountName + "\n负责人：" + ownerName + "\n最后活动日期：" + lastActivityDate + "\n无活动天数：" + daysSinceLastActivity + " 天\n\n请关注并采取相应措施。\n\n此致\nCRM 系统自动通知");
+            
+            zoho.crm.sendMail(accountId, "Accounts", sendMailMap);
+            
+            alert90Count = alert90Count + 1;
+            info "✓ 发送90天提醒: " + accountName + " -> Cindy";
+        }
+        catch(e)
+        {
+            info "✗ 发送90天邮件失败: " + accountName + " - " + e;
+        }
+    }
+}
+
+// 保存日志到 CRM Logs 模块
+try
+{
+    logContent = Map();
+    logContent.put("Check_Date", today);
+    logContent.put("Processed_Count", processedCount);
+    logContent.put("Error_Count", errorCount);
+    logContent.put("Alert_60_Count", alert60Count);
+    logContent.put("Alert_90_Count", alert90Count);
+    
+    logMap = Map();
+    logMap.put("Name", "Weekly_Activity_Check_" + today.toString());
+    logMap.put("Log_Content", logContent.toString());
+    
+    zoho.crm.createRecord("Logs", logMap);
+    info "✓ 日志已保存到 CRM Logs 模块";
+}
+catch(e)
+{
+    info "✗ 保存日志失败: " + e;
+}
+
+info "=====================================";
+info "每周检查完成！";
+info "处理数量: " + processedCount;
+info "错误数量: " + errorCount;
+info "60天提醒: " + alert60Count + " 封";
+info "90天提醒: " + alert90Count + " 封";
+info "=====================================";
+
+return "Processed: " + processedCount + ", 60-day alerts: " + alert60Count + ", 90-day alerts: " + alert90Count;

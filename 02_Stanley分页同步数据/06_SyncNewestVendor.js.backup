@@ -1,0 +1,401 @@
+void schedule.SyncNewestVendor()
+{
+baseUrl = "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/vendor";
+limit = 200;
+error400Ids = List();
+totalProcessed = 0;
+totalSuccess = 0;
+totalFailed = 0;
+statusNoteId = null;
+fromDate = "01/01/2026";
+todayStr = "01/01/2026";
+noteContent = null;
+// 从 vendorLogs 读 lastSyncDate 或 lastSyncTime
+statusNotes = zoho.crm.searchRecords("vendorLogs","(Name:equals:VendorSyncStatus)");
+if(statusNotes != null && statusNotes.size() > 0)
+{
+	info ("搜索结果数量: " + statusNotes.size());
+	statusNote = statusNotes.get(0);
+	statusNoteId = statusNote.get("id");
+	noteContent = statusNote.get("Log_Content");
+	info ("找到记录，Log_Content: " + noteContent);
+}
+else
+{
+	// 如果不存在，初始化创建一条记录
+	try
+	{
+		initParams = Map();
+		initParams.put("Name","VendorSyncStatus");
+		initParams.put("Log_Content","{\"lastSyncDate\":\"01/01/2026\",\"lastSyncTime\":\"" + zoho.currenttime.toString() + "\"}");
+		initList = List();
+		initList.add(initParams);
+		initRequestParams = Map();
+		initRequestParams.put("data",initList);
+		initResp = invokeurl
+		[
+			url :"https://www.zohoapis.com.au/crm/v8/vendorLogs"
+			type :POST
+			parameters:initRequestParams.toString()
+			connection:"crm"
+		];
+		info "已初始化 VendorSyncStatus 记录";
+	}
+	catch (initError)
+	{
+		info "初始化 VendorSyncStatus 失败: " + initError;
+	}
+}
+if(noteContent != null && noteContent != "")
+{
+	statusMap = noteContent.toMap();
+	if(statusMap != null)
+	{
+		info ("statusMap 解析结果: 成功");
+		lastSyncDateVal = statusMap.get("lastSyncDate");
+		info ("lastSyncDateVal: " + lastSyncDateVal);
+		if(lastSyncDateVal != null && lastSyncDateVal != "" && lastSyncDateVal.indexOf("/") >= 0)
+		{
+			parts = lastSyncDateVal.toList("/");
+			info "parts: " + parts;
+			if(parts.size() >= 3)
+			{
+				// 检查是否是 DD/Mon/YYYY 格式（如 29/Jun/2026）
+				monthNames = {"Jan":"01","Feb":"02","Mar":"03","Apr":"04","May":"05","Jun":"06","Jul":"07","Aug":"08","Sep":"09","Oct":"10","Nov":"11","Dec":"12"};
+				p1Str = parts.get(1);
+				info "p1Str: " + p1Str;
+				if(monthNames.containsKey(p1Str))
+				{
+					// DD/Mon/YYYY 格式，转换为 DD/MM/YYYY
+					fromDate = parts.get(0) + "/" + monthNames.get(p1Str) + "/" + parts.get(2);
+					info "转换后的 fromDate: " + fromDate;
+				}
+				else
+				{
+					// 尝试作为数字解析
+					p0 = parts.get(0).toNumber();
+					p1 = parts.get(1).toNumber();
+					// 第一段<=12 且 第二段>12 则认为是 MM/DD/YYYY，转为 dd/mm/yyyy
+					if(p0 <= 12 && p1 > 12)
+					{
+						fromDate = parts.get(1) + "/" + parts.get(0) + "/" + parts.get(2);
+					}
+					else
+					{
+						fromDate = lastSyncDateVal;
+					}
+				}
+			}
+			else
+			{
+				fromDate = lastSyncDateVal;
+			}
+		}
+		else
+		{
+			lastSyncTimeVal = statusMap.get("lastSyncTime");
+			if(lastSyncTimeVal != null && lastSyncTimeVal != "" && lastSyncTimeVal.length() >= 10)
+			{
+				// 支持两种格式：
+				// 1. "2026-06-26 13:00:57" (YYYY-MM-DD)
+				// 2. "26-Jun-2026 13:00:57" (DD-Mon-YYYY)
+				part = lastSyncTimeVal.trim().substring(0,10);
+				parts = part.toList("-");
+				if(parts.size() >= 3)
+				{
+					// 检查第一部分是否是4位数（年份）
+					if(parts.get(0).length() == 4)
+					{
+						// YYYY-MM-DD 格式
+						fromDate = parts.get(2) + "/" + parts.get(1) + "/" + parts.get(0);
+					}
+					else
+					{
+						// DD-Mon-YYYY 格式
+						monthNames = {"Jan":"01","Feb":"02","Mar":"03","Apr":"04","May":"05","Jun":"06","Jul":"07","Aug":"08","Sep":"09","Oct":"10","Nov":"11","Dec":"12"};
+						p1Str = parts.get(1);
+						if(monthNames.containsKey(p1Str))
+						{
+							fromDate = parts.get(0) + "/" + monthNames.get(p1Str) + "/" + parts.get(2);
+						}
+					}
+				}
+			}
+		}
+	}
+}
+// Zoho 返回 "14-Feb-2026"（DD-Mon-YYYY），转为 DD/MM/YYYY 数字格式
+monthMap = {"Jan":"01","Feb":"02","Mar":"03","Apr":"04","May":"05","Jun":"06","Jul":"07","Aug":"08","Sep":"09","Oct":"10","Nov":"11","Dec":"12"};
+raw = zoho.currentdate.toString();
+if(raw != null && raw != "")
+{
+	parts = raw.toList("-");
+	if(parts.size() >= 3)
+	{
+		dd = parts.get(0);
+		mon = parts.get(1);
+		yyyy = parts.get(2);
+		// 将英文月份转为数字
+		if(monthMap.containsKey(mon))
+		{
+			todayStr = dd + "/" + monthMap.get(mon) + "/" + yyyy;
+		}
+		else
+		{
+			todayStr = dd + "/" + mon + "/" + yyyy;
+		}
+	}
+}
+qStr = 'createdDate ON_OR_AFTER "' + fromDate + '"';
+encodedQ = standalone.EncodeQForOAuth(qStr);
+info ("查询字符串 qStr: " + qStr);
+info ("编码后的 encodedQ: " + encodedQ);
+// 测试：尝试 MM/DD/YYYY 格式
+// fromDate 格式是 DD/MM/YYYY，需要转换为 MM/DD/YYYY
+parts2 = fromDate.toList("/");
+if(parts2.size() >= 3)
+{
+	// 转换为 MM/DD/YYYY 格式
+	fromDateMMDDYYYY = parts2.get(1) + "/" + parts2.get(0) + "/" + parts2.get(2);
+	info ("测试 MM/DD/YYYY 格式: " + fromDateMMDDYYYY);
+	qStr2 = 'createdDate ON_OR_AFTER "' + fromDateMMDDYYYY + '"';
+	encodedQ2 = standalone.EncodeQForOAuth(qStr2);
+	info ("MM/DD/YYYY 查询字符串: " + qStr2);
+	info ("MM/DD/YYYY 编码后: " + encodedQ2);
+}
+info "开始同步最新vendors，fromDate = " + fromDate;
+try
+{
+	// 分页拉取
+	allItems = List();
+	offset = 0;
+	hasMore = true;
+	pageList = {1,2,3,4,5};
+	for each  pageNum in pageList
+	{
+		if(hasMore == false)
+		{
+			break;
+		}
+		auth = standalone.SetHeadersForNewest("GET",baseUrl,true,limit,offset,qStr);
+		headers = {"Content-Type":"application/json","Authorization":auth};
+		resp = invokeurl
+		[
+			url :baseUrl + "?limit=" + limit + "&offset=" + offset + "&q=" + encodedQ
+			type :GET
+			headers:headers
+		];
+		if(resp == null)
+		{
+			info "获取vendor列表失败，offset = " + offset;
+			break;
+		}
+		listData = resp.getFileContent().toJSONList().get(0);
+		items = listData.get("items");
+		hasMore = listData.get("hasMore");
+		if(items == null || items.size() == 0)
+		{
+			break;
+		}
+		info "本页 " + items.size() + " 条（offset=" + offset + "），hasMore=" + hasMore;
+		for each  pageItem in items
+		{
+			allItems.add(pageItem);
+		}
+		if(hasMore == false)
+		{
+			break;
+		}
+		offset = offset + limit;
+	}
+	if(allItems == null || allItems.size() == 0)
+	{
+		info "没有新增vendor（createdDate >= " + fromDate + "）";
+		statusData = Map();
+		statusData.put("lastSyncDate",todayStr);
+		statusData.put("lastSyncTime",zoho.currenttime.toString());
+		statusNoteParams = Map();
+		statusNoteParams.put("Name","VendorSyncStatus");
+		statusNoteParams.put("Log_Content",statusData.toString());
+		statusDataList = List();
+		statusDataList.add(statusNoteParams);
+		statusRequestParams = Map();
+		statusRequestParams.put("data",statusDataList);
+		if(statusNoteId != null && statusNoteId != "")
+		{
+			invokeurl
+			[
+				url :"https://www.zohoapis.com.au/crm/v8/vendorLogs/" + statusNoteId
+				type :PUT
+				parameters:statusRequestParams.toString()
+				connection:"crm"
+			]
+		}
+		else
+		{
+			invokeurl
+			[
+				url :"https://www.zohoapis.com.au/crm/v8/vendorLogs"
+				type :POST
+				parameters:statusRequestParams.toString()
+				connection:"crm"
+			]
+		}
+		info "VendorSyncStatus 已更新，lastSyncDate = " + todayStr;
+		return;
+	}
+	info "共获取 " + allItems.size() + " 条vendor，开始逐条同步";
+	for each  item in allItems
+	{
+		vendorId = item.get("id");
+		try
+		{
+			syncResult = standalone.SyncSingleVendor(vendorId);
+			isSuccess = false;
+			errorMsg = "未知错误";
+			if(syncResult != null)
+			{
+				// 先检查是否有错误信息
+				syncError = syncResult.get("error");
+				if(syncError != null)
+				{
+					errorMsg = syncError;
+				}
+				else
+				{
+					res = syncResult.get("res");
+					if(res != null)
+					{
+						data = res.get("data");
+						if(data != null && data.size() > 0)
+						{
+							firstItem = data.get(0);
+							if(firstItem != null)
+							{
+								status = firstItem.get("status");
+								code = firstItem.get("code");
+								message = firstItem.get("message");
+								if(status != null && status == "success")
+								{
+									isSuccess = true;
+								}
+								else if(code != null && code == "SUCCESS")
+								{
+									isSuccess = true;
+								}
+								else
+								{
+									if(message != null)
+									{
+										errorMsg = message;
+									}
+									else if(code != null)
+									{
+										errorMsg = code;
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+			if(isSuccess == true)
+			{
+				totalSuccess = totalSuccess + 1;
+				totalProcessed = totalProcessed + 1;
+			}
+			else
+			{
+				error400Ids.add(vendorId);
+				totalFailed = totalFailed + 1;
+				totalProcessed = totalProcessed + 1;
+				info "vendor同步失败: " + vendorId + " - " + errorMsg;
+			}
+		}
+		catch (e)
+		{
+			error400Ids.add(vendorId);
+			totalFailed = totalFailed + 1;
+			totalProcessed = totalProcessed + 1;
+			info "vendor处理异常: " + vendorId + " - " + e;
+		}
+	}
+	info "批量同步完成，本次处理: " + totalProcessed + " 条（成功: " + totalSuccess + "，失败: " + totalFailed + "）";
+	// 保存错误ID到vendorLogs模块
+	if(error400Ids != null && error400Ids.size() > 0)
+	{
+		info "失败vendor ID（共 " + error400Ids.size() + " 条）: " + error400Ids;
+		try
+		{
+			// 构建错误记录内容
+			errorData = Map();
+			errorData.put("batchStart","newest");
+			errorData.put("lastSyncDate",todayStr);
+			errorData.put("errorCount",error400Ids.size());
+			errorData.put("syncTime",zoho.currenttime.toString());
+			// 创建错误记录
+			errorParams = Map();
+			errorParams.put("Name","VendorSync_400Errors_" + todayStr.replaceAll("/","-"));
+			errorParams.put("Modules","Vendors");
+			errorParams.put("Error_Ids",error400Ids.toString());
+			errorParams.put("Log_Content","批次: newest, 同步日期: " + todayStr + ", 成功: " + totalSuccess + " 条, 失败: " + totalFailed + " 条, 错误数量: " + error400Ids.size() + ", 详细数据: " + errorData.toString());
+			errorList = List();
+			errorList.add(errorParams);
+			errorRequestParams = Map();
+			errorRequestParams.put("data",errorList);
+			invokeurl
+			[
+				url :"https://www.zohoapis.com.au/crm/v8/vendorLogs"
+				type :POST
+				parameters:errorRequestParams.toString()
+				connection:"crm"
+			];
+			info "错误ID已保存到vendorLogs";
+		}
+		catch (e)
+		{
+			info "保存错误ID失败: " + e;
+		}
+	}
+	statusData = Map();
+	statusData.put("lastSyncDate",todayStr);
+	statusData.put("lastSyncTime",zoho.currenttime.toString());
+	statusData.put("hasMore",hasMore);
+	statusData.put("mode","newest");
+	statusData.put("lastBatchProcessed",totalProcessed);
+	statusData.put("lastBatchSuccess",totalSuccess);
+	statusData.put("lastBatchFailed",totalFailed);
+	statusNoteParams = Map();
+	statusNoteParams.put("Name","VendorSyncStatus");
+	statusNoteParams.put("Log_Content",statusData.toString());
+	statusDataList = List();
+	statusDataList.add(statusNoteParams);
+	statusRequestParams = Map();
+	statusRequestParams.put("data",statusDataList);
+	if(statusNoteId != null && statusNoteId != "")
+	{
+		invokeurl
+		[
+			url :"https://www.zohoapis.com.au/crm/v8/vendorLogs/" + statusNoteId
+			type :PUT
+			parameters:statusRequestParams.toString()
+			connection:"crm"
+		]
+	}
+	else
+	{
+		invokeurl
+		[
+			url :"https://www.zohoapis.com.au/crm/v8/vendorLogs"
+			type :POST
+			parameters:statusRequestParams.toString()
+			connection:"crm"
+		]
+	}
+	info "VendorSyncStatus 已更新，lastSyncDate = " + todayStr;
+}
+catch (e)
+{
+	info "同步最新vendor异常: " + e;
+}
+}
