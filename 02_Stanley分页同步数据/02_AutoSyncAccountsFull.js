@@ -3,7 +3,7 @@ void schedule.AutoSyncAccountsFull()
 // 从CRM获取当前进度
 currentOffset = 0;
 statusNoteId = null;
-statusNotes = zoho.crm.searchRecords("Logs","(Name:equals:CustomerSyncStatus)");
+statusNotes = zoho.crm.searchRecords("Logs","(Name:equals:CustomerSyncStatus_All)");
 if(statusNotes != null && statusNotes.size() > 0)
 {
 	statusNote = statusNotes.get(0);
@@ -39,7 +39,7 @@ if(syncResult != null)
 		statusData.put("lastSyncTime",zoho.currenttime.toString());
 		statusData.put("hasMore",hasMore);
 		statusNoteParams = Map();
-		statusNoteParams.put("Name","CustomerSyncStatus");
+		statusNoteParams.put("Name","CustomerSyncStatus_All");
 		statusNoteParams.put("Log_Content",statusData.toString());
 		statusDataList = List();
 		statusDataList.add(statusNoteParams);
@@ -70,7 +70,7 @@ if(syncResult != null)
 	}
 	catch (e)
 	{
-		info "更新CustomerSyncStatus记录失败: " + e;
+		info "更新CustomerSyncStatus_All记录失败: " + e;
 	}
 	// 如果还有更多数据，提示设置自动调度
 	if(hasMore == true && finalProcessed < 2000)

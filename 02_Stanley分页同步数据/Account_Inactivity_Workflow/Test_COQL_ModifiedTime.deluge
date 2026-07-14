@@ -1,0 +1,92 @@
+void schedule.TestCOQLModifiedTime()
+{
+// Test 1: Simple query without date filter
+info "Test 1: Simple query";
+coqlQuery = "select id, Account_Name, Modified_Time from Accounts limit 5";
+requestParams = Map();
+requestParams.put("select_query",coqlQuery);
+resp = invokeurl
+[
+	url :"https://www.zohoapis.com.au/crm/v8/coql"
+	type :POST
+	parameters:requestParams.toString()
+	connection:"crm"
+];
+if(resp == null)
+{
+	info "Test 1 failed: null response";
+}
+else
+{
+	info "Test 1 response: " + resp;
+	data = resp.get("data");
+	if(data != null && data.size() > 0)
+	{
+		info "Test 1 found " + data.size() + " records";
+		for each account in data
+		{
+			info "Account: " + account.get("Account_Name") + " | Modified_Time: " + account.get("Modified_Time");
+		}
+	}
+}
+
+// Test 2: Query with date filter
+info "Test 2: Query with date filter";
+coqlQuery2 = "select id, Account_Name, Modified_Time from Accounts where Modified_Time >= '2026-07-10T00:00:00+00:00' limit 5";
+requestParams.put("select_query",coqlQuery2);
+resp2 = invokeurl
+[
+	url :"https://www.zohoapis.com.au/crm/v8/coql"
+	type :POST
+	parameters:requestParams.toString()
+	connection:"crm"
+];
+if(resp2 == null)
+{
+	info "Test 2 failed: null response";
+}
+else
+{
+	info "Test 2 response: " + resp2;
+	data2 = resp2.get("data");
+	if(data2 != null && data2.size() > 0)
+	{
+		info "Test 2 found " + data2.size() + " records";
+	}
+	else
+	{
+		info "Test 2: No data or error";
+	}
+}
+
+// Test 3: Query with different date format
+info "Test 3: Query with different date format";
+coqlQuery3 = "select id, Account_Name, Modified_Time from Accounts where Modified_Time >= '2026-07-10' limit 5";
+requestParams.put("select_query",coqlQuery3);
+resp3 = invokeurl
+[
+	url :"https://www.zohoapis.com.au/crm/v8/coql"
+	type :POST
+	parameters:requestParams.toString()
+	connection:"crm"
+];
+if(resp3 == null)
+{
+	info "Test 3 failed: null response";
+}
+else
+{
+	info "Test 3 response: " + resp3;
+	data3 = resp3.get("data");
+	if(data3 != null && data3.size() > 0)
+	{
+		info "Test 3 found " + data3.size() + " records";
+	}
+	else
+	{
+		info "Test 3: No data or error";
+	}
+}
+
+info "All tests completed";
+}

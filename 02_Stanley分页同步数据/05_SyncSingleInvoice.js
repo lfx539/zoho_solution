@@ -75,6 +75,7 @@ if(invoiceOwner != null)
 {
 	invoiceOwnerName = invoiceOwner.get("refName");
 	invoiceOwnerID = standalone.mapSalesRep(invoiceOwnerName);
+	info "SalesRep: " + invoiceOwnerName + " -> OwnerID: " + invoiceOwnerID;
 	// 只有当返回有效ID时才设置，否则使用默认值
 	if(invoiceOwnerID != null && invoiceOwnerID != "")
 	{

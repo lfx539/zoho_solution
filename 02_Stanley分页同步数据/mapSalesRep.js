@@ -43,11 +43,12 @@ if(nameLower.contains("dallian") || nameLower.contains("jack") || nameLower.cont
 }
 
 // 从 NetSuite 名称提取关键部分（按空格拆分，用于模糊匹配）
+// 忽略单个字母（如 "J" in "TRENT J Macnee"）
 parts = nameTrim.toList(" ");
 keywords = List();
 for each  p in parts
 {
-	if(p != null && p.trim() != "")
+	if(p != null && p.trim() != "" && p.trim().length() > 1)
 	{
 		keywords.add(p.trim().toLowerCase());
 	}

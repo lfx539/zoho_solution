@@ -16,7 +16,15 @@ if(response == null)
 	result.put("error","获取客户详情失败");
 	return result;
 }
-customerDetail = response.getFileContent().toJSONList().get(0);
+try
+{
+	customerDetail = response.getFileContent().toJSONList().get(0);
+}
+catch (e)
+{
+	result.put("error","NetSuite返回错误，无法解析客户详情");
+	return result;
+}
 if(customerDetail == null)
 {
 	result.put("error","客户详情为空");
@@ -62,39 +70,43 @@ if(acOwner != null)
 }
 // ========== 新增字段 ==========
 // 2nd email
-customerParams.put("Alt_Email", customerDetail.get("altEmail"));
+customerParams.put("Alt_Email",customerDetail.get("custentity_tbs_alt_email"));
 // price level
 priceLevelObj = customerDetail.get("priceLevel");
 if(priceLevelObj != null)
 {
-	customerParams.put("Price_Level", priceLevelObj.get("refName"));
+	customerParams.put("Price_Level",priceLevelObj.get("refName"));
+}
+else
+{
+	customerParams.put("Price_Level","Default Price");
 }
 // payment term
 termsObj = customerDetail.get("terms");
 if(termsObj != null)
 {
-	customerParams.put("Payment_Terms", termsObj.get("refName"));
+	customerParams.put("Payment_Terms",termsObj.get("refName"));
 }
 // comments
-customerParams.put("Comments", customerDetail.get("comments"));
+customerParams.put("Comments",customerDetail.get("comments"));
 // abn
-customerParams.put("ABN", customerDetail.get("custentity_anz_suitetax_abn"));
+customerParams.put("ABN",customerDetail.get("custentity_anz_suitetax_abn"));
 // credit limit
-customerParams.put("Credit_Limit", customerDetail.get("creditLimit"));
+customerParams.put("Credit_Limit",customerDetail.get("creditLimit"));
 // available credit
-customerParams.put("Available_Credit", customerDetail.get("custentity_atlas_avail_credit"));
+customerParams.put("Available_Credit",customerDetail.get("custentity_atlas_avail_credit"));
 // start date
-customerParams.put("Start_Date", customerDetail.get("startDate"));
+customerParams.put("Start_Date",customerDetail.get("startDate"));
 // balance
-customerParams.put("Balance", customerDetail.get("balance"));
+customerParams.put("Balance",customerDetail.get("balance"));
 // overdue balance
-customerParams.put("Overdue_Balance", customerDetail.get("overdueBalance"));
+customerParams.put("Overdue_Balance",customerDetail.get("overdueBalance"));
 // days overdue
-customerParams.put("Days_Overdue", customerDetail.get("daysOverdue"));
+customerParams.put("Days_Overdue",customerDetail.get("daysOverdue"));
 // unbilled orders
-customerParams.put("Unbilled_Order", customerDetail.get("unbilledOrders"));
+customerParams.put("Unbilled_Order",customerDetail.get("unbilledOrders"));
 // deposit balance
-customerParams.put("Deposit_Balance", customerDetail.get("depositBalance"));
+customerParams.put("Deposit_Balance",customerDetail.get("depositBalance"));
 // 3. 同步客户到 Accounts
 customerParameters = Map();
 customerList = List();
@@ -146,7 +158,7 @@ if(addressBookObj != null && accountCrmid != null)
 		billingAddr = Map();
 		for each  addressItem in addressItems
 		{
-			try
+			try 
 			{
 				addressParams = Map();
 				addressList = List();

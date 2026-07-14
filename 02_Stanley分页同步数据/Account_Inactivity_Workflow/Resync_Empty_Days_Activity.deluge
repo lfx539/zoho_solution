@@ -1,0 +1,210 @@
+void schedule.ResyncEmptyDaysActivity()
+{
+// 从 Logs 读取上次处理到的 Modified_Time
+lastProcessedTime = "2026-07-12T00:00:00+00:00";
+statusNotes = zoho.crm.searchRecords("Logs", "(Name:equals:ResyncDaysActivityStatus)");
+statusNoteId = null;
+if(statusNotes != null && statusNotes.size() > 0)
+{
+	statusNote = statusNotes.get(0);
+	statusNoteId = statusNote.get("id");
+	noteContent = statusNote.get("Log_Content");
+	if(noteContent != null && noteContent != "")
+	{
+		statusMap = noteContent.toMap();
+		if(statusMap != null)
+		{
+			savedTime = statusMap.get("lastProcessedTime");
+			if(savedTime != null && savedTime != "")
+			{
+				lastProcessedTime = savedTime;
+			}
+		}
+	}
+}
+
+info "Starting from Modified_Time > " + lastProcessedTime;
+
+// Query Accounts with Modified_Time > lastProcessedTime and Days_Since_Last_Activity < 900
+coqlQuery = "select id, Account_Name, Modified_Time from Accounts where Modified_Time > '" + lastProcessedTime + "' and Days_Since_Last_Activity < 900 order by Modified_Time asc limit 200";
+requestParams = Map();
+requestParams.put("select_query", coqlQuery);
+resp = invokeurl
+[
+	url :"https://www.zohoapis.com.au/crm/v8/coql"
+	type :POST
+	parameters:requestParams.toString()
+	connection:"crm"
+];
+if(resp == null)
+{
+	info "Query failed";
+	return;
+}
+errorCode = resp.get("code");
+if(errorCode != null && errorCode != "SUCCESS")
+{
+	info "COQL Error: " + errorCode + " - " + resp.get("message");
+	return;
+}
+data = resp.get("data");
+if(data == null || data.size() == 0)
+{
+	info "No more accounts to process. All done!";
+	return;
+}
+info "Found " + data.size() + " accounts to process";
+successCount = 0;
+failCount = 0;
+lastTime = lastProcessedTime;
+
+for each account in data
+{
+	accountId = account.get("id");
+	accountName = account.get("Account_Name");
+	modifiedTime = account.get("Modified_Time");
+
+	// Update lastTime for next batch
+	if(modifiedTime != null && modifiedTime != "")
+	{
+		lastTime = modifiedTime;
+	}
+
+	try
+	{
+		today = zoho.currenttime.toDate("yyyy-MM-dd'T'HH:mm:ss");
+		allActivityDates = List();
+
+		tasks = zoho.crm.getRelatedRecords("Tasks", "Accounts", accountId);
+		if(tasks != null)
+		{
+			for each task in tasks
+			{
+				dueDate = task.get("Due_Date");
+				if(dueDate != null)
+				{
+					allActivityDates.add(dueDate);
+				}
+			}
+		}
+
+		calls = zoho.crm.getRelatedRecords("Calls", "Accounts", accountId);
+		if(calls != null)
+		{
+			for each call in calls
+			{
+				callStartTime = call.get("Call_Start_Time");
+				if(callStartTime != null)
+				{
+					allActivityDates.add(callStartTime);
+				}
+			}
+		}
+
+		events = zoho.crm.getRelatedRecords("Events", "Accounts", accountId);
+		if(events != null)
+		{
+			for each event in events
+			{
+				startDateTime = event.get("Start_DateTime");
+				if(startDateTime != null)
+				{
+					allActivityDates.add(startDateTime);
+				}
+			}
+		}
+
+		lastActivityDate = null;
+		daysSinceLastActivity = 999;
+
+		if(allActivityDates.size() > 0)
+		{
+			sortedDates = allActivityDates.sort(false);
+			lastActivityDate = sortedDates.get(0);
+
+			try
+			{
+				dateStr = lastActivityDate.toString();
+				if(dateStr.contains("T"))
+				{
+					datePart = dateStr.substring(0, 10);
+					lastDate = datePart.toDate("yyyy-MM-dd");
+				}
+				else if(dateStr.contains("-") && dateStr.length() >= 10)
+				{
+					lastDate = dateStr.toDate("yyyy-MM-dd");
+				}
+				else
+				{
+					lastDate = lastActivityDate;
+				}
+
+				diffInMillis = today.toLong() - lastDate.toLong();
+				daysSinceLastActivity = (diffInMillis / (1000 * 60 * 60 * 24)).round(0);
+			}
+			catch(e)
+			{
+				daysSinceLastActivity = 999;
+			}
+		}
+
+		updateMap = Map();
+		updateMap.put("Days_Since_Last_Activity", daysSinceLastActivity);
+		updateMap.put("Last_Activity_Date", lastActivityDate);
+
+		updateResp = zoho.crm.updateRecord("Accounts", accountId.toString(), updateMap);
+
+		if(updateResp != null)
+		{
+			info "Updated: " + accountName + " | Days: " + daysSinceLastActivity;
+			successCount = successCount + 1;
+		}
+		else
+		{
+			info "Failed: " + accountName;
+			failCount = failCount + 1;
+		}
+	}
+	catch (e)
+	{
+		info "Error: " + accountName + " - " + e;
+		failCount = failCount + 1;
+	}
+}
+
+// Save progress to Logs
+statusData = Map();
+statusData.put("lastProcessedTime", lastTime);
+statusData.put("lastRunTime", zoho.currenttime.toString());
+statusNoteParams = Map();
+statusNoteParams.put("Name", "ResyncDaysActivityStatus");
+statusNoteParams.put("Log_Content", statusData.toString());
+statusDataList = List();
+statusDataList.add(statusNoteParams);
+statusRequestParams = Map();
+statusRequestParams.put("data", statusDataList);
+
+if(statusNoteId != null)
+{
+	invokeurl
+	[
+		url :"https://www.zohoapis.com.au/crm/v8/Logs/" + statusNoteId
+		type :PUT
+		parameters:statusRequestParams.toString()
+		connection:"crm"
+	];
+}
+else
+{
+	invokeurl
+	[
+		url :"https://www.zohoapis.com.au/crm/v8/Logs"
+		type :POST
+		parameters:statusRequestParams.toString()
+		connection:"crm"
+	];
+}
+
+info "Done! Success: " + successCount + ", Failed: " + failCount;
+info "Next batch will start from Modified_Time > " + lastTime;
+}

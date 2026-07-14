@@ -7,7 +7,8 @@ try
 	// 查询 Sync_Result 为空的记录，限制15条
 	if(module == "Accounts")
 	{
-		selectQuery = "select id from Logs where Sync_Result is null limit 15";
+		// 只处理 CustomerSync_400Errors_xxx 格式的 log，忽略 Account_Activity_Sync_Page_xxx
+		selectQuery = "select id from Logs where Sync_Result is null and Name like 'CustomerSync_400Errors%' limit 15";
 	}
 	else if(module == "Sales_Orders")
 	{
