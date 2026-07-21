@@ -1,0 +1,350 @@
+// ============================================================================
+// Sync PO 到 Books（智能更新）
+// 逻辑：
+// 1. 先在 Books 中查找是否存在同 reference_number 的 PO
+// 2. 如果找到 >> 更新
+// 3. 如果没找到 >> 创建
+// 4. 保存 Books ID 回 CRM
+// 前置依赖：
+// 1. Vendor 需要先同步到 Books Vendor
+// 2. Product 需要先同步到 Books Item
+// ============================================================================
+
+string standalone.SyncPurchaseOrderToBooks(String poId)
+{
+    result = Map();
+
+    try
+    {
+        // 1. 获取 CRM Purchase Order 信息
+        po = zoho.crm.getRecordById("Purchase_Orders", poId);
+
+        if(po == null)
+        {
+            result.put("error", "Purchase Order not found in CRM");
+            info "[ERR] PO not found: " + poId;
+            return result.toString();
+        }
+
+        poNumber = po.get("PO_Number");
+        if(poNumber == null)
+        {
+            poNumber = po.get("Subject");
+        }
+        info "========================================";
+        info "Sync PO: " + poNumber;
+
+        // ========================================
+        // 步骤 2: 在 Books 中查找是否存在同 reference_number 的 PO
+        // ========================================
+        existingPoId = null;
+
+        // 优先检查 CRM 中的 Books_PO_ID
+        crmBooksPoId = po.get("Books_PO_ID");
+        if(crmBooksPoId != null && crmBooksPoId != "")
+        {
+            existingPoId = crmBooksPoId;
+            info ">> Found in CRM Books_PO_ID: " + existingPoId;
+        }
+
+        // 如果 CRM 中没有，通过 reference_number 在 Books 中搜索
+        if(existingPoId == null && poNumber != null && poNumber != "")
+        {
+            config = standalone.GetBooksConfig().toMap();
+            baseUrl = config.get("baseUrl");
+            orgId = config.get("organizationId");
+
+            searchResp = invokeurl
+            [
+                url: baseUrl + "/purchaseorders?organization_id=" + orgId + "&reference_number=" + encodeUrl(poNumber)
+                type: GET
+                connection: "books"
+            ];
+
+            if(searchResp.get("code") == 0)
+            {
+                purchaseorders = searchResp.get("purchaseorders");
+                if(purchaseorders != null && purchaseorders.size() > 0)
+                {
+                    existingPoId = purchaseorders.get(0).get("purchaseorder_id");
+                    info ">> Found existing PO: " + existingPoId;
+                }
+            }
+        }
+
+        // 3. Sync Vendor 到 Books Vendor
+        vendorObj = po.get("Vendor_Name");
+        if(vendorObj == null)
+        {
+            errorMsg = "Vendor is required";
+            info "[ERR] " + errorMsg;
+            result.put("error", errorMsg);
+            result.put("status", "failed");
+            automation.SaveBooksSyncLog("Purchase_Orders", poId, "", "Failed", errorMsg);
+            return result.toString();
+        }
+
+        vendorId = vendorObj.get("id");
+        info ">> Sync Vendor: " + vendorId;
+        vendorResult = standalone.SyncVendorToBooks(vendorId).toMap();
+        vendorCustomerId = vendorResult.get("vendorId");
+
+        if(vendorCustomerId == null || vendorCustomerId == "")
+        {
+            errorMsg = "Failed to sync Vendor to Books";
+            info "[ERR] " + errorMsg;
+            result.put("error", errorMsg);
+            result.put("status", "failed");
+            automation.SaveBooksSyncLog("Purchase_Orders", poId, "", "Failed", errorMsg);
+            return result.toString();
+        }
+
+        info "[OK] Vendor synced: Vendor ID = " + vendorCustomerId;
+
+        // 4. 构建行项目（Line Items）
+        purchaseItems = po.get("Purchase_Items");
+        if(purchaseItems == null || purchaseItems.size() == 0)
+        {
+            errorMsg = "No purchase items found";
+            info "[ERR] " + errorMsg;
+            result.put("error", errorMsg);
+            result.put("status", "failed");
+            automation.SaveBooksSyncLog("Purchase_Orders", poId, "", "Failed", errorMsg);
+            return result.toString();
+        }
+
+        lineItems = List();
+
+        for each item in purchaseItems
+        {
+            productObj = item.get("Product_Name");
+
+            // 检查是否为 Expense 类型
+            itemType = item.get("Item_Type");
+            if(itemType != null && itemType == "Expense")
+            {
+                // Expense 类型：直接添加为 expense item
+                expenseItem = Map();
+                expenseItem.put("description", item.get("Product_Description"));
+                expenseItem.put("quantity", item.get("Quantity"));
+                expenseItem.put("rate", item.get("Rate"));
+
+                lineItems.add(expenseItem);
+                continue;
+            }
+
+            // Product 类型
+            if(productObj == null)
+            {
+                continue;
+            }
+
+            productId = productObj.get("id");
+
+            // Sync Product 到 Books Item
+            info ">> Sync Product: " + productId;
+            itemId = standalone.SyncProductToBooks(productId);
+
+            if(itemId == null || itemId == "")
+            {
+                errorMsg = "Failed to sync Product: " + productId;
+                info "[ERR] " + errorMsg;
+                result.put("error", errorMsg);
+                result.put("status", "failed");
+                automation.SaveBooksSyncLog("Purchase_Orders", poId, "", "Failed", errorMsg);
+                return result.toString();
+            }
+
+            // 构建行项目
+            lineItem = Map();
+            lineItem.put("item_id", itemId);
+            lineItem.put("name", productObj.get("display_value"));
+            lineItem.put("quantity", item.get("Quantity"));
+            lineItem.put("rate", item.get("Rate"));
+            lineItem.put("description", item.get("Product_Description"));
+
+            discount = item.get("Discount");
+            if(discount != null && discount > 0)
+            {
+                lineItem.put("discount_amount", discount);
+            }
+
+            lineItems.add(lineItem);
+        }
+
+        info "[OK] Built line items";
+
+        // 5. 获取 Books 配置
+        config = standalone.GetBooksConfig().toMap();
+        baseUrl = config.get("baseUrl");
+        orgId = config.get("organizationId");
+
+        // 6. 构建 Books Purchase Order 数据
+        poData = Map();
+        poData.put("vendor_id", vendorCustomerId);
+        poData.put("date", po.get("PO_Date"));
+        poData.put("reference_number", poNumber);
+        poData.put("line_items", lineItems);
+
+        // NetSuite ID >> Books 自定义字段
+        netsuiteId = po.get("Subject");
+        if(netsuiteId != null && netsuiteId != "")
+        {
+            customFieldList = List();
+            customFieldMap = Map();
+            customFieldMap.put("api_name", "cf_netsuite_id");
+            customFieldMap.put("value", netsuiteId);
+            customFieldList.add(customFieldMap);
+            poData.put("custom_fields", customFieldList);
+        }
+
+        // 其他字段（仅非 null 时设置）
+        notes = po.get("Description");
+        if(notes != null && notes != "")
+        {
+            poData.put("notes", notes);
+        }
+        terms = po.get("Terms_and_Conditions");
+        if(terms != null && terms != "")
+        {
+            poData.put("terms", terms);
+        }
+
+        // Shipping Address
+        shippingAddress = Map();
+        shipStreet = po.get("Shipping_Street");
+        if(shipStreet != null) { shippingAddress.put("address", shipStreet); }
+        shipCity = po.get("Shipping_City");
+        if(shipCity != null) { shippingAddress.put("city", shipCity); }
+        shipState = po.get("Shipping_State");
+        if(shipState != null) { shippingAddress.put("state", shipState); }
+        shipZip = po.get("Shipping_Code");
+        if(shipZip != null) { shippingAddress.put("zip", shipZip); }
+        shipCountry = po.get("Shipping_Country");
+        if(shipCountry != null) { shippingAddress.put("country", shipCountry); }
+        poData.put("shipping_address", shippingAddress);
+
+        // Billing Address
+        billingAddress = Map();
+        billStreet = po.get("Billing_Street");
+        if(billStreet != null) { billingAddress.put("address", billStreet); }
+        billCity = po.get("Billing_City");
+        if(billCity != null) { billingAddress.put("city", billCity); }
+        billState = po.get("Billing_State");
+        if(billState != null) { billingAddress.put("state", billState); }
+        billZip = po.get("Billing_Code");
+        if(billZip != null) { billingAddress.put("zip", billZip); }
+        billCountry = po.get("Billing_Country");
+        if(billCountry != null) { billingAddress.put("country", billCountry); }
+        poData.put("billing_address", billingAddress);
+
+        // ========================================
+        // 步骤 7: 更新或创建
+        // ========================================
+        if(existingPoId != null)
+        {
+            // ========================================
+            // 已有 Books PO：执行更新操作
+            // ========================================
+            info ">> Update mode";
+            response = invokeurl
+            [
+                url: baseUrl + "/purchaseorders/" + existingPoId + "?organization_id=" + orgId
+                type: PUT
+                parameters: poData.toString()
+                connection: "books"
+            ];
+
+            responseMap = response;
+            if(responseMap.get("code") == 0)
+            {
+                info "[OK] PO updated: " + poNumber;
+
+                // 更新 CRM 中的 Books_PO_ID
+                updateMap = Map();
+                updateMap.put("Books_PO_ID", existingPoId);
+                updateMap.put("Books_Sync_Status", "Success");
+                zoho.crm.updateRecord("Purchase_Orders", poId.toString(), updateMap);
+
+                result.put("poId", existingPoId);
+                result.put("status", "success");
+                result.put("action", "updated");
+
+                automation.SaveBooksSyncLog("Purchase_Orders", poId, existingPoId, "Success", "Purchase Order updated successfully");
+            }
+            else
+            {
+                errorMsg = responseMap.get("message");
+                info "[ERR] PO update failed: " + errorMsg;
+
+                updateMap = Map();
+                updateMap.put("Books_Sync_Status", "Failed");
+                zoho.crm.updateRecord("Purchase_Orders", poId.toString(), updateMap);
+
+                result.put("error", errorMsg);
+                result.put("status", "failed");
+
+                automation.SaveBooksSyncLog("Purchase_Orders", poId, "", "Failed", errorMsg);
+            }
+        }
+        else
+        {
+            // ========================================
+            // 没有 Books PO：执行创建操作
+            // ========================================
+            info ">> Create mode";
+            response = invokeurl
+            [
+                url: baseUrl + "/purchaseorders?organization_id=" + orgId
+                type: POST
+                parameters: poData.toString()
+                connection: "books"
+            ];
+
+            responseMap = response;
+            if(responseMap.get("code") == 0)
+            {
+                purchaseorder = responseMap.get("purchaseorder");
+                booksPoId = purchaseorder.get("purchaseorder_id");
+
+                info "[OK] PO created: " + poNumber + " (Books ID: " + booksPoId + ")";
+
+                updateMap = Map();
+                updateMap.put("Books_PO_ID", booksPoId);
+                updateMap.put("Books_Sync_Status", "Success");
+                zoho.crm.updateRecord("Purchase_Orders", poId.toString(), updateMap);
+
+                result.put("poId", booksPoId);
+                result.put("status", "success");
+                result.put("action", "created");
+
+                automation.SaveBooksSyncLog("Purchase_Orders", poId, booksPoId, "Success", "Purchase Order created successfully");
+            }
+            else
+            {
+                errorMsg = responseMap.get("message");
+                info "[ERR] PO create failed: " + errorMsg;
+
+                updateMap = Map();
+                updateMap.put("Books_Sync_Status", "Failed");
+                zoho.crm.updateRecord("Purchase_Orders", poId.toString(), updateMap);
+
+                result.put("error", errorMsg);
+                result.put("status", "failed");
+
+                automation.SaveBooksSyncLog("Purchase_Orders", poId, "", "Failed", errorMsg);
+            }
+        }
+    }
+    catch (e)
+    {
+        errorMsg = "Exception: " + e.toString();
+        info "[ERR] PO sync exception: " + errorMsg;
+        result.put("error", errorMsg);
+        result.put("status", "failed");
+
+        automation.SaveBooksSyncLog("Purchase_Orders", poId, "", "Failed", errorMsg);
+    }
+
+    return result.toString();
+}

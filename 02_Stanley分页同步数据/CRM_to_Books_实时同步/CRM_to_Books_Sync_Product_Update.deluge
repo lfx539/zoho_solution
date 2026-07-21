@@ -1,0 +1,264 @@
+// ============================================================================
+// Sync Product 到 Books（智能更新）
+// 逻辑：
+// 1. 先在 Books 中查找是否存在同名或同 SKU 的 Item
+// 2. 如果找到 >> 更新
+// 3. 如果没找到 >> 创建
+// 4. 保存 Books ID 回 CRM
+// ============================================================================
+
+string standalone.SyncProductToBooks(productId)
+{
+    // 获取 Product 信息
+    product = zoho.crm.getRecordById("Products", productId);
+    productName = product.get("Product_Name");
+    productSku = product.get("Product_Code");
+
+    // 获取 Books 配置
+    config = standalone.GetBooksConfig().toMap();
+    baseUrl = config.get("baseUrl");
+    orgId = config.get("organizationId");
+
+    info "========================================";
+    info "Sync Product: " + productName;
+
+    // ========================================
+    // 步骤 1: 在 Books 中查找是否存在同名或同 SKU 的 Item
+    // ========================================
+    existingItemId = null;
+
+    // 优先用 SKU 精确搜索
+    if(productSku != null && productSku != "")
+    {
+        searchResponse = invokeurl
+        [
+            url: baseUrl + "/items?organization_id=" + orgId + "&sku=" + encodeUrl(productSku)
+            type: GET
+            connection: "books"
+        ];
+
+        if(searchResponse.get("code") == 0)
+        {
+            items = searchResponse.get("items");
+            info "[DEBUG] SKU search found " + items.size() + " results";
+            if(items != null && items.size() > 0)
+            {
+                existingItemId = items.get(0).get("item_id");
+                info ">> Found by SKU: " + existingItemId;
+            }
+        }
+    }
+
+    // SKU 没找到，用名称搜索
+    if(existingItemId == null && productName != null && productName != "")
+    {
+        searchResponse = invokeurl
+        [
+            url: baseUrl + "/items?organization_id=" + orgId + "&search_text=" + encodeUrl(productName)
+            type: GET
+            connection: "books"
+        ];
+
+        if(searchResponse.get("code") == 0)
+        {
+            items = searchResponse.get("items");
+            info "[DEBUG] Name search found " + items.size() + " results";
+            // 多条结果时，精确匹配 SKU 或名称
+            if(items != null && items.size() > 0)
+            {
+                matchedItem = null;
+                for each searchItem in items
+                {
+                    itemSku = searchItem.get("sku");
+                    itemName = searchItem.get("name");
+                    // 优先精确匹配 SKU
+                    if(productSku != null && productSku != "" && itemSku != null && itemSku.equalsIgnoreCase(productSku))
+                    {
+                        matchedItem = searchItem;
+                        break;
+                    }
+                    // 其次精确匹配名称
+                    if(matchedItem == null && itemName != null && itemName.equalsIgnoreCase(productName))
+                    {
+                        matchedItem = searchItem;
+                    }
+                }
+                if(matchedItem != null)
+                {
+                    existingItemId = matchedItem.get("item_id");
+                    info ">> Found by name match: " + existingItemId;
+                }
+                else
+                {
+                    // 没有精确匹配，取第一条
+                    existingItemId = items.get(0).get("item_id");
+                    info ">> Found (first result): " + existingItemId;
+                }
+            }
+        }
+    }
+
+    // ========================================
+    // 步骤 2: 构建 Books Item 数据
+    // ========================================
+    itemData = Map();
+    itemData.put("name", productName);
+    itemData.put("sku", productSku);
+    itemData.put("description", product.get("Product_Description"));
+
+    // item_type: only set on create, NOT on update (Books doesn't allow changing it)
+    productType = product.get("Product_Type");
+
+    // rate（仅非 null 时设置）
+    rate = product.get("Unit_Price");
+    if(rate != null && rate != "")
+    {
+        itemData.put("rate", rate);
+    }
+
+    // purchase_rate
+    purchaseRate = product.get("Purchase_Price");
+    if(purchaseRate != null && purchaseRate != "")
+    {
+        itemData.put("purchase_rate", purchaseRate);
+    }
+
+    // purchase_description
+    purchaseDesc = product.get("Purchase_Description");
+    if(purchaseDesc != null && purchaseDesc != "")
+    {
+        itemData.put("purchase_description", purchaseDesc);
+    }
+
+    // 库存相关（仅在创建时设置，更新时不发）
+    if(existingItemId == null)
+    {
+        reorderLevel = product.get("Reorder_Level");
+        if(reorderLevel != null && reorderLevel != "")
+        {
+            itemData.put("reorder_level", reorderLevel);
+        }
+
+        // initial_stock 和 initial_stock_rate 只在创建时设置一次
+        itemData.put("initial_stock", product.get("Total_Quantity_On_Hand"));
+        itemData.put("initial_stock_rate", product.get("Average_Cost"));
+    }
+
+    // 重量和尺寸（仅非 null 时设置）
+    len = product.get("Length");
+    if(len != null && len != "")
+    {
+        itemData.put("length", len);
+    }
+    wid = product.get("Width");
+    if(wid != null && wid != "")
+    {
+        itemData.put("width", wid);
+    }
+    hgt = product.get("Height");
+    if(hgt != null && hgt != "")
+    {
+        itemData.put("height", hgt);
+    }
+    wgt = product.get("Weight");
+    if(wgt != null && wgt != "")
+    {
+        itemData.put("weight", wgt);
+    }
+
+    // 单位（仅在创建时设置，更新时不发，Books 不允许通过 API 创建新 unit）
+    if(existingItemId == null)
+    {
+        salesUnit = product.get("Sales_Unit");
+        if(salesUnit != null && salesUnit != "")
+        {
+            itemData.put("unit", salesUnit);
+        }
+        purchaseUnit = product.get("Purchase_Unit");
+        if(purchaseUnit != null && purchaseUnit != "")
+        {
+            itemData.put("purchase_unit", purchaseUnit);
+        }
+    }
+
+    info "[ DEBUG ]itemData = " + itemData.toString();
+
+    // ========================================
+    // 步骤 3: 更新或创建
+    // ========================================
+    if(existingItemId != null)
+    {
+        // ========================================
+        // 已有 Books Item：执行更新操作
+        // ========================================
+        info ">> Update mode";
+        response = invokeurl
+        [
+            url: baseUrl + "/items/" + existingItemId + "?organization_id=" + orgId
+            type: PUT
+            parameters: itemData.toString()
+            connection: "books"
+        ];
+
+        responseMap = response;
+        if(responseMap.get("code") == 0)
+        {
+            info "[OK] Product updated: " + productName;
+
+            // 更新 CRM 中的 Books_Item_ID
+            updateMap = Map();
+            updateMap.put("Books_Item_ID", existingItemId);
+            zoho.crm.updateRecord("Products", productId.toString(), updateMap);
+
+            return existingItemId;
+        }
+        else
+        {
+            info "[ERR] Product update failed: " + responseMap.get("message");
+            return null;
+        }
+    }
+    else
+    {
+        // ========================================
+        // 没有 Books Item：执行创建操作
+        // ========================================
+        if(productType != null && productType == "Service")
+        {
+            itemData.put("item_type", "service");
+        }
+        else
+        {
+            itemData.put("item_type", "goods");
+        }
+        info ">> Create mode";
+        response = invokeurl
+        [
+            url: baseUrl + "/items?organization_id=" + orgId
+            type: POST
+            parameters: itemData.toString()
+            connection: "books"
+        ];
+
+        responseMap = response;
+        if(responseMap.get("code") == 0)
+        {
+            item = responseMap.get("item");
+            itemId = item.get("item_id");
+
+            info "[OK] Product created: " + productName + " (Books ID: " + itemId + ")";
+
+            // 更新 CRM Product
+            updateMap = Map();
+            updateMap.put("Books_Item_ID", itemId);
+            zoho.crm.updateRecord("Products", productId.toString(), updateMap);
+
+            return itemId;
+        }
+        else
+        {
+            info "[ERR] Product create failed: " + responseMap.get("message");
+            return null;
+        }
+    }
+}

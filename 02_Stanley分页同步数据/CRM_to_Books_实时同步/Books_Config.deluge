@@ -1,0 +1,102 @@
+// ============================================================================
+// Zoho Books API 配置函数
+// 用途：提供 Books API 的基础配置
+// 认证方式：使用 Zoho Connection（更安全、更简单）
+// ============================================================================
+
+string standalone.GetBooksConfig()
+{
+    config = Map();
+
+    // ========================================
+    // Books 组织信息
+    // ========================================
+    // 在 Zoho Books 中查看：设置 >> 组织信息 >> 组织 ID
+    config.put("organizationId", "7006400577");
+
+    // ========================================
+    // Books API 基础 URL
+    // ========================================
+    // 使用 connection 时必须走 zohoapis 域名：
+    // 美国: https://www.zohoapis.com/books/v3
+    // 澳洲: https://www.zohoapis.com.au/books/v3
+    // 欧洲: https://www.zohoapis.eu/books/v3
+    // 印度: https://www.zohoapis.in/books/v3
+    // 日本: https://www.zohoapis.jp/books/v3
+    config.put("baseUrl", "https://www.zohoapis.com.au/books/v3");
+
+    // ========================================
+    // 同步配置
+    // ========================================
+    // 是否启用DEBUG日志
+    config.put("debugMode", true);
+
+    return config.toString();
+}
+
+// ============================================================================
+// 辅助函数：记录同步日志到 CRM
+// ============================================================================
+void automation.SaveBooksSyncLog(String module, String crmId, String booksId, String status, String message)
+{
+    try
+    {
+        logData = Map();
+        logData.put("Name", module + "_Sync_" + zoho.currenttime.toString());
+        logData.put("Module", module);
+        logData.put("CRM_Record_ID", crmId);
+        logData.put("Books_Record_ID", booksId);
+        logData.put("Sync_Status", status);  // Success / Failed
+        logData.put("Error_Message", message);
+        logData.put("Sync_Time", zoho.currenttime);
+
+        // 创建日志记录
+        zoho.crm.createRecord("BooksSyncLogs", logData);
+        info "[OK] Log saved: " + module + " - " + status;
+    }
+    catch (e)
+    {
+        info "[ERR] Save log failed: " + e;
+    }
+}
+
+// ============================================================================
+// 辅助函数：更新 CRM 记录的 Books ID 和同步状态
+// ============================================================================
+void automation.UpdateBooksSyncStatus(String module, String recordId, String booksId, String status)
+{
+    try
+    {
+        updateMap = Map();
+
+        if(module == "Sales_Orders")
+        {
+            updateMap.put("Books_SO_ID", booksId);
+            updateMap.put("Books_Sync_Status", status);
+        }
+        else if(module == "Purchase_Orders")
+        {
+            updateMap.put("Books_PO_ID", booksId);
+            updateMap.put("Books_Sync_Status", status);
+        }
+        else if(module == "Accounts")
+        {
+            updateMap.put("Books_Customer_ID", booksId);
+        }
+        else if(module == "Vendors")
+        {
+            updateMap.put("Books_Vendor_ID", booksId);
+        }
+        else if(module == "Products")
+        {
+            updateMap.put("Books_Item_ID", booksId);
+        }
+
+        zoho.crm.updateRecord(module, recordId, updateMap);
+        info "[OK] Sync status updated: " + status;
+    }
+    catch (e)
+    {
+        info "[ERR] Sync status update failed: " + e;
+    }
+}

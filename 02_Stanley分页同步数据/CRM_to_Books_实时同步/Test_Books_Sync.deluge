@@ -1,0 +1,241 @@
+// ============================================================================
+// 测试函数：测试 CRM >> Books 同步功能
+// 用途：手动测试各个同步函数是否正常工作
+// ============================================================================
+
+string test.TestBooksSync()
+{
+    result = Map();
+
+    info "========================================";
+    info "开始测试 CRM >> Books 同步功能";
+    info "========================================";
+
+    // ========================================
+    // 测试 1: 获取 Books 配置
+    // ========================================
+    info "测试 1: 获取 Books 配置";
+    try
+    {
+        config = standalone.GetBooksConfig().toMap();
+        authToken = config.get("authToken");
+        orgId = config.get("organizationId");
+        baseUrl = config.get("baseUrl");
+
+        if(authToken != null && authToken != "YOUR_BOOKS_AUTHTOKEN_HERE")
+        {
+            info "[OK] Books 配置正确";
+            result.put("config", "success");
+        }
+        else
+        {
+            info "[ERR] Books 配置不正确，请检查 authToken";
+            result.put("config", "failed");
+        }
+    }
+    catch (e)
+    {
+        info "[ERR] 获取 Books 配置失败: " + e;
+        result.put("config", "failed");
+    }
+
+    // ========================================
+    // 测试 2: 同步单个 Account（需要提供一个 Account ID）
+    // ========================================
+    // 取消注释以测试
+    /*
+    info "测试 2: Sync Account";
+    testAccountId = "YOUR_TEST_ACCOUNT_ID";  // 替换为实际的 Account ID
+    try
+    {
+        accountResult = standalone.SyncAccountToBooks(testAccountId).toMap();
+        if(accountResult.get("status") == "success")
+        {
+            info "[OK] Account synced";
+            result.put("account", "success");
+        }
+        else
+        {
+            info "[ERR] Account 同步失败: " + accountResult.get("error");
+            result.put("account", "failed");
+        }
+    }
+    catch (e)
+    {
+        info "[ERR] Account sync exception: " + e;
+        result.put("account", "failed");
+    }
+    */
+
+    // ========================================
+    // 测试 3: 同步单个 Product（需要提供一个 Product ID）
+    // ========================================
+    // 取消注释以测试
+    /*
+    info "测试 3: Sync Product";
+    testProductId = "YOUR_TEST_PRODUCT_ID";  // 替换为实际的 Product ID
+    try
+    {
+        productResult = standalone.SyncProductToBooks(testProductId).toMap();
+        if(productResult.get("status") == "success")
+        {
+            info "[OK] Product 同步成功";
+            result.put("product", "success");
+        }
+        else
+        {
+            info "[ERR] Product 同步失败: " + productResult.get("error");
+            result.put("product", "failed");
+        }
+    }
+    catch (e)
+    {
+        info "[ERR] Product sync exception: " + e;
+        result.put("product", "failed");
+    }
+    */
+
+    // ========================================
+    // 测试 4: 同步单个 Vendor（需要提供一个 Vendor ID）
+    // ========================================
+    // 取消注释以测试
+    /*
+    info "测试 4: Sync Vendor";
+    testVendorId = "YOUR_TEST_VENDOR_ID";  // 替换为实际的 Vendor ID
+    try
+    {
+        vendorResult = standalone.SyncVendorToBooks(testVendorId).toMap();
+        if(vendorResult.get("status") == "success")
+        {
+            info "[OK] Vendor synced";
+            result.put("vendor", "success");
+        }
+        else
+        {
+            info "[ERR] Vendor 同步失败: " + vendorResult.get("error");
+            result.put("vendor", "failed");
+        }
+    }
+    catch (e)
+    {
+        info "[ERR] Vendor sync exception: " + e;
+        result.put("vendor", "failed");
+    }
+    */
+
+    // ========================================
+    // 测试 5: 同步单个 Sales Order（需要提供一个 SO ID）
+    // ========================================
+    // 取消注释以测试
+    /*
+    info "测试 5: Sync SO";
+    testSoId = "YOUR_TEST_SO_ID";  // 替换为实际的 SO ID
+    try
+    {
+        soResult = standalone.SyncSalesOrderToBooks(testSoId).toMap();
+        if(soResult.get("status") == "success")
+        {
+            info "[OK] Sales Order 同步成功";
+            result.put("salesOrder", "success");
+        }
+        else
+        {
+            info "[ERR] Sales Order 同步失败: " + soResult.get("error");
+            result.put("salesOrder", "failed");
+        }
+    }
+    catch (e)
+    {
+        info "[ERR] Sales Order sync exception: " + e;
+        result.put("salesOrder", "failed");
+    }
+    */
+
+    // ========================================
+    // 测试 6: 同步单个 Purchase Order（需要提供一个 PO ID）
+    // ========================================
+    // 取消注释以测试
+    /*
+    info "测试 6: Sync PO";
+    testPoId = "YOUR_TEST_PO_ID";  // 替换为实际的 PO ID
+    try
+    {
+        poResult = standalone.SyncPurchaseOrderToBooks(testPoId).toMap();
+        if(poResult.get("status") == "success")
+        {
+            info "[OK] Purchase Order 同步成功";
+            result.put("purchaseOrder", "success");
+        }
+        else
+        {
+            info "[ERR] Purchase Order 同步失败: " + poResult.get("error");
+            result.put("purchaseOrder", "failed");
+        }
+    }
+    catch (e)
+    {
+        info "[ERR] Purchase Order sync exception: " + e;
+        result.put("purchaseOrder", "failed");
+    }
+    */
+
+    info "========================================";
+    info "测试完成";
+    info "========================================";
+
+    return result.toString();
+}
+
+// ============================================================================
+// 快速测试：测试 Books API 连接
+// ============================================================================
+
+string test.TestBooksConnection()
+{
+    result = Map();
+
+    info "测试 Books API 连接...";
+
+    try
+    {
+        // 获取配置
+        config = standalone.GetBooksConfig().toMap();
+        baseUrl = config.get("baseUrl");
+        orgId = config.get("organizationId");
+
+        // 测试 API 调用：获取组织信息
+        response = invokeurl
+        [
+            url: baseUrl + "/organizations?organization_id=" + orgId
+            type: GET
+            connection: "books"
+        ];
+
+        responseMap = response;
+
+        if(responseMap.get("code") == 0)
+        {
+            organizations = responseMap.get("organizations");
+            info "[OK] Books API 连接成功";
+            info "组织数量: " + organizations.size();
+
+            result.put("status", "success");
+            result.put("organizationCount", organizations.size());
+        }
+        else
+        {
+            errorMsg = responseMap.get("message");
+            info "[ERR] Books API 连接失败: " + errorMsg;
+            result.put("status", "failed");
+            result.put("error", errorMsg);
+        }
+    }
+    catch (e)
+    {
+        info "[ERR] Books API 连接异常: " + e;
+        result.put("status", "failed");
+        result.put("error", e.toString());
+    }
+
+    return result.toString();
+}

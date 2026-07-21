@@ -1,0 +1,92 @@
+{
+    "links": [
+        {
+            "rel": "self",
+            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/account/297?expandSubResources=true",
+            "method": "GET"
+        }
+    ],
+    "acctName": "Cash at Bank - ANZ",
+    "acctNumber": "11210",
+    "acctType": {
+        "links": [],
+        "id": "Bank",
+        "refName": "Bank"
+    },
+    "balance": 353478.79,
+    "cashFlowRate": {
+        "links": [],
+        "id": "AVERAGE",
+        "refName": "Average"
+    },
+    "curDocNum": 973162,
+    "currency": {
+        "links": [
+            {
+                "rel": "self",
+                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/currency/1",
+                "method": "GET"
+            }
+        ],
+        "id": "1",
+        "refName": "Australian Dollar"
+    },
+    "custrecord_cash360_exclude_account": false,
+    "custrecord_has_mx_localization": false,
+    "description": "Cash at Bank",
+    "eliminate": false,
+    "fxBalance": 353478.79,
+    "generalRate": {
+        "links": [],
+        "id": "CURRENT",
+        "refName": "Current"
+    },
+    "id": "297",
+    "includeChildren": false,
+    "inventory": false,
+    "isInactive": false,
+    "isSummary": false,
+    "lastModifiedDate": "2026-07-16T00:41:00Z",
+    "localizations": {
+        "links": [
+            {
+                "rel": "self",
+                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/account/297/localizations",
+                "method": "GET"
+            }
+        ],
+        "items": [],
+        "totalResults": 0
+    },
+    "reconcileWithMatching": true,
+    "revalue": true,
+    "sBankCompanyId": "797411914",
+    "sBankName": "ANZ",
+    "sBankRoutingNumber": "013289",
+    "subsidiary": {
+        "links": [
+            {
+                "rel": "self",
+                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/account/297/subsidiary",
+                "method": "GET"
+            }
+        ],
+        "count": 1,
+        "hasMore": false,
+        "items": [
+            {
+                "links": [
+                    {
+                        "rel": "self",
+                        "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/subsidiary/1",
+                        "method": "GET"
+                    }
+                ],
+                "id": "1",
+                "refName": "STANLEY PACKAGING GROUP PTY LTD"
+            }
+        ],
+        "offset": 0,
+        "totalResults": 1
+    }
+}

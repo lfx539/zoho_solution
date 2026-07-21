@@ -1,0 +1,177 @@
+// ============================================================================
+// Sync CRM Account to Books Customer
+// Logic: Find by CRM ID -> traversal -> create (handle already exists)
+// ============================================================================
+
+string standalone.SyncAccountToBooks(accountId)
+{
+    account = zoho.crm.getRecordById("Accounts", accountId);
+    accountName = account.get("Account_Name");
+
+    config = standalone.GetBooksConfig().toMap();
+    baseUrl = config.get("baseUrl");
+    orgId = config.get("organizationId");
+
+    info "========================================";
+    info "Sync Account: " + accountName;
+
+    // Step 1: Find existing Customer in Books
+    // Priority: 1) CRM Books_Customer_ID  2) Traverse contacts
+    existingCustomerId = null;
+
+    // Priority 1: CRM Books_Customer_ID
+    crmBooksId = account.get("Books_Customer_ID");
+    info "[DEBUG] CRM Books_Customer_ID = '" + crmBooksId + "'";
+    if(crmBooksId != null && crmBooksId != "")
+    {
+        existingCustomerId = crmBooksId;
+        info "Found in CRM: " + existingCustomerId;
+    }
+
+    // Priority 2: Search by email in Books
+    accountEmail = account.get("Email");
+    if(existingCustomerId == null && accountEmail != null && accountEmail != "")
+    {
+        searchResp = invokeurl
+        [
+            url: baseUrl + "/contacts?organization_id=" + orgId + "&email_contains=" + encodeUrl(accountEmail)
+            type: GET
+            connection: "books"
+        ];
+        if(searchResp.get("code") == 0)
+        {
+            contacts = searchResp.get("contacts");
+            if(contacts != null && contacts.size() > 0)
+            {
+                existingCustomerId = contacts.get(0).get("contact_id");
+                info "Found by email: " + existingCustomerId;
+            }
+        }
+    }
+
+    // Priority 3: Search by display name
+    searchName = accountName;
+    if(accountName != null && accountName.contains("@"))
+    {
+        searchName = accountName.substring(0, accountName.indexOf("@"));
+    }
+    if(existingCustomerId == null && searchName != null && searchName != "")
+    {
+        searchResp = invokeurl
+        [
+            url: baseUrl + "/contacts?organization_id=" + orgId + "&search_text=" + encodeUrl(searchName)
+            type: GET
+            connection: "books"
+        ];
+        if(searchResp.get("code") == 0)
+        {
+            contacts = searchResp.get("contacts");
+            if(contacts != null && contacts.size() > 0)
+            {
+                existingCustomerId = contacts.get(0).get("contact_id");
+                info "Found by name: " + existingCustomerId;
+            }
+        }
+    }
+
+    // Step 2: Build Customer data
+    customerData = Map();
+
+    customerData.put("contact_name", accountName);
+    customerData.put("company_name", accountName);
+    customerData.put("contact_type", "customer");
+    customerData.put("email", account.get("Email"));
+    customerData.put("phone", account.get("Phone"));
+    customerData.put("website", account.get("Website"));
+    customerData.put("notes", account.get("Description"));
+
+    // Billing Address
+    billingAddress = Map();
+    billingAddress.put("address", account.get("Billing_Street"));
+    billingAddress.put("city", account.get("Billing_City"));
+    billingAddress.put("state", account.get("Billing_State"));
+    billingAddress.put("zip", account.get("Billing_Code"));
+    billingAddress.put("country", account.get("Billing_Country"));
+    customerData.put("billing_address", billingAddress);
+
+    // Shipping Address
+    shippingAddress = Map();
+    shippingAddress.put("address", account.get("Shipping_Street"));
+    shippingAddress.put("city", account.get("Shipping_City"));
+    shippingAddress.put("state", account.get("Shipping_State"));
+    shippingAddress.put("zip", account.get("Shipping_Code"));
+    shippingAddress.put("country", account.get("Shipping_Country"));
+    customerData.put("shipping_address", shippingAddress);
+
+    info "[DEBUG] customerData = " + customerData.toString();
+
+    // Step 3: Update or Create
+    if(existingCustomerId != null)
+    {
+        // Update existing Customer
+        info "Update mode";
+        response = invokeurl
+        [
+            url: baseUrl + "/contacts/" + existingCustomerId + "?organization_id=" + orgId
+            type: PUT
+            parameters: customerData.toString()
+            connection: "books"
+        ];
+
+        responseMap = response;
+        if(responseMap.get("code") == 0)
+        {
+            info "Account updated: " + accountName;
+
+            updateMap = Map();
+            updateMap.put("Books_Customer_ID", existingCustomerId);
+            zoho.crm.updateRecord("Accounts", accountId.toString(), updateMap);
+
+            return existingCustomerId;
+        }
+        else
+        {
+            info "Account update failed: " + responseMap.get("message");
+            return null;
+        }
+    }
+    else
+    {
+        // Create new Customer
+        info "Create mode";
+        response = invokeurl
+        [
+            url: baseUrl + "/contacts?organization_id=" + orgId
+            type: POST
+            parameters: customerData.toString()
+            connection: "books"
+        ];
+
+        responseMap = response;
+        if(responseMap.get("code") == 0)
+        {
+            contact = responseMap.get("contact");
+            contactId = contact.get("contact_id");
+
+            info "Account created: " + accountName + " (Books ID: " + contactId + ")";
+
+            updateMap = Map();
+            updateMap.put("Books_Customer_ID", contactId);
+            zoho.crm.updateRecord("Accounts", accountId.toString(), updateMap);
+
+            return contactId;
+        }
+        else
+        {
+            errorMsg = responseMap.get("message");
+            // If already exists but search didn't find it, skip
+            if(errorMsg != null && errorMsg.contains("already exists"))
+            {
+                info "Account already exists in Books, skip: " + accountName;
+                return "exists";
+            }
+            info "Account create failed: " + errorMsg;
+            return null;
+        }
+    }
+}

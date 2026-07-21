@@ -1,0 +1,419 @@
+// ============================================================================
+// Sync SO 到 Books（智能更新）
+// 逻辑：
+// 1. 先在 Books 中查找是否存在同 reference_number 的 SO
+// 2. 如果找到 >> 更新
+// 3. 如果没找到 >> 创建
+// 4. 保存 Books ID 回 CRM
+// 前置依赖：
+// 1. Account 需要先同步到 Books Customer
+// 2. Product 需要先同步到 Books Item
+// ============================================================================
+
+string standalone.SyncSalesOrderToBooks(String soId)
+{
+    result = Map();
+
+    try
+    {
+        // 1. 获取 CRM Sales Order 完整信息（包含子表所有字段）
+        so = zoho.crm.getRecordById("Sales_Orders", soId);
+
+        if(so == null)
+        {
+            result.put("error", "Sales Order not found");
+            info "[ERR] Sales Order not found: " + soId;
+            return result.toString();
+        }
+
+        soNumber = so.get("Order_Number");
+        if(soNumber == null)
+        {
+            soNumber = so.get("Subject");
+        }
+        info "========================================";
+        info "Sync SO: " + soNumber;
+
+        // 用 CRM API 获取完整记录（zoho.crm.getRecordById 子表字段值可能为 null）
+        soFullResp = invokeurl
+        [
+            url: "https://www.zohoapis.com.au/crm/v8/Sales_Orders/" + soId
+            type: GET
+            connection: "crm"
+        ];
+        if(soFullResp != null && soFullResp.get("data") != null && soFullResp.get("data").size() > 0)
+        {
+            so = soFullResp.get("data").get(0);
+        }
+
+        // ========================================
+        // 步骤 2: 在 Books 中查找是否存在同 reference_number 的 SO
+        // ========================================
+        existingSoId = null;
+
+        // 优先检查 CRM 中的 Books_SO_ID
+        crmBooksSoId = so.get("Books_SO_ID");
+        if(crmBooksSoId != null && crmBooksSoId != "")
+        {
+            existingSoId = crmBooksSoId;
+            info ">> Found in CRM Books_SO_ID: " + existingSoId;
+        }
+
+        // 如果 CRM 中没有，通过 reference_number 在 Books 中搜索
+        if(existingSoId == null && soNumber != null && soNumber != "")
+        {
+            config = standalone.GetBooksConfig().toMap();
+            baseUrl = config.get("baseUrl");
+            orgId = config.get("organizationId");
+
+            searchResp = invokeurl
+            [
+                url: baseUrl + "/salesorders?organization_id=" + orgId + "&reference_number=" + encodeUrl(soNumber)
+                type: GET
+                connection: "books"
+            ];
+
+            if(searchResp.get("code") == 0)
+            {
+                salesorders = searchResp.get("salesorders");
+                if(salesorders != null && salesorders.size() > 0)
+                {
+                    existingSoId = salesorders.get(0).get("salesorder_id");
+                    info ">> Found existing SO: " + existingSoId;
+                }
+            }
+        }
+
+        // 3. Sync Account 到 Books Customer
+        accountObj = so.get("Account_Name");
+        if(accountObj == null)
+        {
+            errorMsg = "Account is required";
+            info "[ERR] " + errorMsg;
+            result.put("error", errorMsg);
+            result.put("status", "failed");
+            automation.SaveBooksSyncLog("Sales_Orders", soId, "", "Failed", errorMsg);
+            return result.toString();
+        }
+
+        accountId = accountObj.get("id");
+        info ">> Sync Account: " + accountId;
+        customerId = standalone.SyncAccountToBooks(accountId);
+
+        if(customerId == null || customerId == "")
+        {
+            errorMsg = "Failed to sync Account to Books";
+            info "[ERR] " + errorMsg;
+            result.put("error", errorMsg);
+            result.put("status", "failed");
+            automation.SaveBooksSyncLog("Sales_Orders", soId, "", "Failed", errorMsg);
+            return result.toString();
+        }
+        // Account exists but we don't have its Books ID
+        if(customerId == "exists")
+        {
+            errorMsg = "Account exists in Books but could not find ID";
+            info "[ERR] " + errorMsg;
+            result.put("error", errorMsg);
+            result.put("status", "failed");
+            automation.SaveBooksSyncLog("Sales_Orders", soId, "", "Failed", errorMsg);
+            return result.toString();
+        }
+        info "[OK] Account synced: Customer ID = " + customerId;
+
+        // 4. 构建行项目（Line Items）
+        // CRM REST API 返回的子表字段名可能是 Product_Details 或 Ordered_Items
+        productDetails = so.get("Product_Details");
+        if(productDetails == null || productDetails.size() == 0)
+        {
+            productDetails = so.get("Ordered_Items");
+        }
+        pdCount = "null";
+        if(so.get("Product_Details") != null) { pdCount = so.get("Product_Details").size(); }
+        oiCount = "null";
+        if(so.get("Ordered_Items") != null) { oiCount = so.get("Ordered_Items").size(); }
+        info "[ DEBUG ]Product_Details=" + pdCount + " | Ordered_Items=" + oiCount;
+        if(productDetails == null || productDetails.size() == 0)
+        {
+            errorMsg = "No line items found";
+            info "[ERR] " + errorMsg;
+            result.put("error", errorMsg);
+            result.put("status", "failed");
+            automation.SaveBooksSyncLog("Sales_Orders", soId, "", "Failed", errorMsg);
+            return result.toString();
+        }
+
+        lineItems = List();
+
+        for each item in productDetails
+        {
+            productObj = item.get("Product_Name");
+            if(productObj == null)
+            {
+                productObj = item.get("product");
+            }
+            if(productObj == null)
+            {
+                continue;
+            }
+
+            productId = productObj.get("id");
+
+            // Sync Product 到 Books Item
+            info ">> Sync Product: " + productId;
+            itemId = standalone.SyncProductToBooks(productId);
+
+            if(itemId == null || itemId == "")
+            {
+                errorMsg = "Failed to sync Product: " + productId;
+                info "[ERR] " + errorMsg;
+                result.put("error", errorMsg);
+                result.put("status", "failed");
+                automation.SaveBooksSyncLog("Sales_Orders", soId, "", "Failed", errorMsg);
+                return result.toString();
+            }
+
+            // 构建行项目
+            lineItem = Map();
+            lineItem.put("item_id", itemId);
+            productName = productObj.get("display_value");
+            if(productName != null && productName != "")
+            {
+                lineItem.put("name", productName);
+            }
+            // [ DEBUG ]打印子表 item 的所有 key，确认 rate 字段名
+            info "[ DEBUG ]item keys = " + item.keys().toString();
+            info "[ DEBUG ]list_price=" + item.get("list_price") + " | unit_price=" + item.get("unit_price") + " | Rate=" + item.get("Rate") + " | rate=" + item.get("rate");
+            qty = item.get("Quantity");
+            if(qty == null) { qty = item.get("quantity"); }
+            if(qty != null && qty != "")
+            {
+                lineItem.put("quantity", qty);
+            }
+            else
+            {
+                lineItem.put("quantity", 1);
+            }
+            // rate: CRM 子表字段名是 list_price 或 unit_price
+            rateVal = item.get("list_price");
+            if(rateVal == null || rateVal == "") { rateVal = item.get("unit_price"); }
+            if(rateVal == null || rateVal == "") { rateVal = item.get("Rate"); }
+            if(rateVal == null || rateVal == "") { rateVal = item.get("rate"); }
+            if(rateVal != null && rateVal != "")
+            {
+                lineItem.put("rate", rateVal);
+            }
+            else
+            {
+                lineItem.put("rate", 0);
+            }
+            desc = item.get("Product_Description");
+            if(desc != null && desc != "")
+            {
+                lineItem.put("description", desc);
+            }
+
+            discount = item.get("Discount");
+            if(discount != null && discount > 0)
+            {
+                lineItem.put("discount_amount", discount);
+            }
+
+            lineItems.add(lineItem);
+        }
+
+        info "[OK] Built line items";
+
+        // 5. 获取 Books 配置
+        config = standalone.GetBooksConfig().toMap();
+        baseUrl = config.get("baseUrl");
+        orgId = config.get("organizationId");
+
+        // 6. 构建 Books Sales Order 数据
+        soData = Map();
+        soData.put("customer_id", customerId);
+        soData.put("date", so.get("Created_Time").substring(0, 10));
+        soData.put("reference_number", soNumber);
+        soData.put("salesperson_name", "SEAN REN");
+        soData.put("line_items", lineItems);
+
+        // NetSuite ID >> Books 自定义字段
+        netsuiteId = so.get("Subject");
+        if(netsuiteId != null && netsuiteId != "")
+        {
+            customFieldList = List();
+            customFieldMap = Map();
+            customFieldMap.put("api_name", "cf_netsuite_id");
+            customFieldMap.put("value", netsuiteId);
+            customFieldList.add(customFieldMap);
+            soData.put("custom_fields", customFieldList);
+        }
+
+        // 其他字段（仅非 null 时设置）
+        memo = so.get("Memo");
+        if(memo != null && memo != "")
+        {
+            soData.put("notes", memo);
+        }
+        terms = so.get("Terms_and_Conditions");
+        if(terms != null && terms != "")
+        {
+            soData.put("terms", terms);
+        }
+        shipCost = so.get("Shipping_Cost");
+        if(shipCost != null && shipCost != "")
+        {
+            soData.put("shipping_charge", shipCost);
+        }
+        disc = so.get("Discount");
+        if(disc != null && disc != "")
+        {
+            soData.put("adjustment", disc);
+        }
+
+        // Shipping Address
+        shippingAddress = Map();
+        addrText = so.get("Shipping_Address");
+        if(addrText != null && addrText.length() > 80)
+        {
+            addrText = addrText.substring(0, 80);
+        }
+        if(addrText != null) { shippingAddress.put("address", addrText); }
+        shipCity = so.get("Shipping_City");
+        if(shipCity != null) { shippingAddress.put("city", shipCity); }
+        shipState = so.get("Shipping_State");
+        if(shipState != null) { shippingAddress.put("state", shipState); }
+        shipZip = so.get("Shipping_Code");
+        if(shipZip != null) { shippingAddress.put("zip", shipZip); }
+        shipCountry = so.get("Shipping_Country");
+        if(shipCountry != null) { shippingAddress.put("country", shipCountry); }
+        soData.put("shipping_address", shippingAddress);
+
+        // Billing Address
+        billingAddress = Map();
+        billAddrText = so.get("Billing_Address");
+        if(billAddrText != null && billAddrText.length() > 80)
+        {
+            billAddrText = billAddrText.substring(0, 80);
+        }
+        if(billAddrText != null) { billingAddress.put("address", billAddrText); }
+        billCity = so.get("Billing_City");
+        if(billCity != null) { billingAddress.put("city", billCity); }
+        billState = so.get("Billing_State");
+        if(billState != null) { billingAddress.put("state", billState); }
+        billZip = so.get("Billing_Code");
+        if(billZip != null) { billingAddress.put("zip", billZip); }
+        billCountry = so.get("Billing_Country");
+        if(billCountry != null) { billingAddress.put("country", billCountry); }
+        soData.put("billing_address", billingAddress);
+
+        // ========================================
+        // 步骤 7: 更新或创建
+        // ========================================
+        if(existingSoId != null)
+        {
+            // ========================================
+            // 已有 Books SO：执行更新操作
+            // ========================================
+            info ">> Update mode";
+            response = invokeurl
+            [
+                url: baseUrl + "/salesorders/" + existingSoId + "?organization_id=" + orgId
+                type: PUT
+                parameters: soData.toString()
+                connection: "books"
+            ];
+
+            responseMap = response;
+            if(responseMap.get("code") == 0)
+            {
+                info "[OK] SO updated: " + soNumber;
+
+                // 更新 CRM 中的 Books_SO_ID
+                updateMap = Map();
+                updateMap.put("Books_SO_ID", existingSoId);
+                updateMap.put("Books_Sync_Status", "Success");
+                zoho.crm.updateRecord("Sales_Orders", soId.toString(), updateMap);
+
+                result.put("soId", existingSoId);
+                result.put("status", "success");
+                result.put("action", "updated");
+
+                automation.SaveBooksSyncLog("Sales_Orders", soId, existingSoId, "Success", "Sales Order updated successfully");
+            }
+            else
+            {
+                errorMsg = responseMap.get("message");
+                info "[ERR] SO update failed: " + errorMsg;
+
+                updateMap = Map();
+                updateMap.put("Books_Sync_Status", "Failed");
+                zoho.crm.updateRecord("Sales_Orders", soId.toString(), updateMap);
+
+                result.put("error", errorMsg);
+                result.put("status", "failed");
+
+                automation.SaveBooksSyncLog("Sales_Orders", soId, "", "Failed", errorMsg);
+            }
+        }
+        else
+        {
+            // ========================================
+            // 没有 Books SO：执行创建操作
+            // ========================================
+            info ">> Create mode";
+            response = invokeurl
+            [
+                url: baseUrl + "/salesorders?organization_id=" + orgId
+                type: POST
+                parameters: soData.toString()
+                connection: "books"
+            ];
+
+            responseMap = response;
+            if(responseMap.get("code") == 0)
+            {
+                salesorder = responseMap.get("salesorder");
+                booksSoId = salesorder.get("salesorder_id");
+
+                info "[OK] SO created: " + soNumber + " (Books ID: " + booksSoId + ")";
+
+                updateMap = Map();
+                updateMap.put("Books_SO_ID", booksSoId);
+                updateMap.put("Books_Sync_Status", "Success");
+                zoho.crm.updateRecord("Sales_Orders", soId.toString(), updateMap);
+
+                result.put("soId", booksSoId);
+                result.put("status", "success");
+                result.put("action", "created");
+
+                automation.SaveBooksSyncLog("Sales_Orders", soId, booksSoId, "Success", "Sales Order created successfully");
+            }
+            else
+            {
+                errorMsg = responseMap.get("message");
+                info "[ERR] SO create failed: " + errorMsg;
+
+                updateMap = Map();
+                updateMap.put("Books_Sync_Status", "Failed");
+                zoho.crm.updateRecord("Sales_Orders", soId.toString(), updateMap);
+
+                result.put("error", errorMsg);
+                result.put("status", "failed");
+
+                automation.SaveBooksSyncLog("Sales_Orders", soId, "", "Failed", errorMsg);
+            }
+        }
+    }
+    catch (e)
+    {
+        errorMsg = "Exception: " + e.toString();
+        info "[ERR] SO sync exception: " + errorMsg;
+        result.put("error", errorMsg);
+        result.put("status", "failed");
+
+        automation.SaveBooksSyncLog("Sales_Orders", soId, "", "Failed", errorMsg);
+    }
+
+    return result.toString();
+}

@@ -1,0 +1,218 @@
+// ============================================================================
+// Sync Vendor 到 Books（智能更新）
+// 逻辑：
+// 1. 先在 Books 中查找是否存在同名 Vendor
+// 2. 如果找到 >> 更新
+// 3. 如果没找到 >> 创建
+// 4. 保存 Books ID 回 CRM
+// ============================================================================
+
+string standalone.SyncVendorToBooks(String vendorId)
+{
+    result = Map();
+
+    try
+    {
+        // 1. 获取 CRM Vendor 信息
+        vendor = zoho.crm.getRecordById("Vendors", vendorId);
+
+        if(vendor == null)
+        {
+            result.put("error", "Vendor not found in CRM");
+            info "[ERR] Vendor not found: " + vendorId;
+            return result.toString();
+        }
+
+        vendorName = vendor.get("Vendor_Name");
+        info "========================================";
+        info "Sync Vendor: " + vendorName;
+
+        // 2. 获取 Books 配置
+        config = standalone.GetBooksConfig().toMap();
+        baseUrl = config.get("baseUrl");
+        orgId = config.get("organizationId");
+
+        // ========================================
+        // 步骤 3: 在 Books 中查找是否存在同名 Vendor
+        // ========================================
+        existingVendorId = null;
+
+        // 优先通过名称查找
+        if(vendorName != null && vendorName != "")
+        {
+            searchResp = invokeurl
+            [
+                url: baseUrl + "/contacts/vendors?organization_id=" + orgId + "&search_text=" + encodeUrl(vendorName)
+                type: GET
+                connection: "books"
+            ];
+
+            if(searchResp.get("code") == 0)
+            {
+                contacts = searchResp.get("contacts");
+                if(contacts != null && contacts.size() > 0)
+                {
+                    existingVendorId = contacts.get(0).get("contact_id");
+                    info ">> Found existing Vendor: " + existingVendorId;
+                }
+            }
+        }
+
+        // ========================================
+        // 步骤 4: 构建 Books Vendor 数据
+        // ========================================
+        vendorData = Map();
+
+        // 基础信息
+        vendorData.put("vendor_name", vendorName);
+        vendorData.put("company_name", vendorName);
+        vendorData.put("contact_type", "vendor");
+        vendorData.put("email", vendor.get("Email"));
+        vendorData.put("phone", vendor.get("Phone"));
+        vendorData.put("website", vendor.get("Website"));
+
+        // 联系人信息
+        contactPerson = Map();
+        contactPerson.put("first_name", vendor.get("Contact_First_Name"));
+        contactPerson.put("last_name", vendor.get("Contact_Last_Name"));
+        contactPerson.put("email", vendor.get("Email"));
+        contactPerson.put("phone", vendor.get("Phone"));
+        contactPerson.put("mobile", vendor.get("Mobile"));
+        vendorData.put("contact_persons", {contactPerson});
+
+        // Billing Address
+        billingAddress = Map();
+        billingAddress.put("attention", vendor.get("Billing_Attention"));
+        billingAddress.put("address", vendor.get("Billing_Street"));
+        billingAddress.put("street2", vendor.get("Billing_Street_2"));
+        billingAddress.put("city", vendor.get("Billing_City"));
+        billingAddress.put("state", vendor.get("Billing_State"));
+        billingAddress.put("zip", vendor.get("Billing_Code"));
+        billingAddress.put("country", vendor.get("Billing_Country"));
+        vendorData.put("billing_address", billingAddress);
+
+        // Shipping Address
+        shippingAddress = Map();
+        shippingAddress.put("attention", vendor.get("Shipping_Attention"));
+        shippingAddress.put("address", vendor.get("Shipping_Street"));
+        shippingAddress.put("street2", vendor.get("Shipping_Street_2"));
+        shippingAddress.put("city", vendor.get("Shipping_City"));
+        shippingAddress.put("state", vendor.get("Shipping_State"));
+        shippingAddress.put("zip", vendor.get("Shipping_Code"));
+        shippingAddress.put("country", vendor.get("Shipping_Country"));
+        vendorData.put("shipping_address", shippingAddress);
+
+        // 其他信息
+        vendorData.put("notes", vendor.get("Description"));
+
+        // ========================================
+        // 步骤 5: 更新或创建
+        // ========================================
+        if(existingVendorId != null)
+        {
+            // ========================================
+            // 已有 Books Vendor：执行更新操作
+            // ========================================
+            info ">> Update mode";
+            response = invokeurl
+            [
+                url: baseUrl + "/contacts/vendors/" + existingVendorId + "?organization_id=" + orgId
+                type: PUT
+                parameters: vendorData.toString()
+                connection: "books"
+            ];
+
+            responseMap = response;
+
+            if(responseMap.get("code") == 0)
+            {
+                info "[OK] Vendor updated: " + vendorName;
+
+                // 更新 CRM 中的 Books_Vendor_ID
+                updateMap = Map();
+                updateMap.put("Books_Vendor_ID", existingVendorId);
+                zoho.crm.updateRecord("Vendors", vendorId.toString(), updateMap);
+
+                result.put("vendorId", existingVendorId);
+                result.put("status", "success");
+                result.put("action", "updated");
+
+                automation.SaveBooksSyncLog("Vendors", vendorId, existingVendorId, "Success", "Vendor updated successfully");
+            }
+            else
+            {
+                errorMsg = responseMap.get("message");
+                info "[ERR] Vendor update failed: " + errorMsg;
+                result.put("error", errorMsg);
+                result.put("status", "failed");
+
+                automation.SaveBooksSyncLog("Vendors", vendorId, existingVendorId, "Failed", errorMsg);
+            }
+        }
+        else
+        {
+            // ========================================
+            // 没有 Books Vendor：执行创建操作
+            // ========================================
+            info ">> Create mode";
+            response = invokeurl
+            [
+                url: baseUrl + "/contacts/vendors?organization_id=" + orgId
+                type: POST
+                parameters: vendorData.toString()
+                connection: "books"
+            ];
+
+            responseMap = response;
+
+            if(responseMap.get("code") == 0)
+            {
+                contact = responseMap.get("contact");
+                newVendorId = contact.get("contact_id");
+
+                info "[OK] Vendor created: " + vendorName + " (Books ID: " + newVendorId + ")";
+
+                // 更新 CRM Vendor
+                updateMap = Map();
+                updateMap.put("Books_Vendor_ID", newVendorId);
+                zoho.crm.updateRecord("Vendors", vendorId.toString(), updateMap);
+
+                result.put("vendorId", newVendorId);
+                result.put("status", "success");
+                result.put("action", "created");
+
+                automation.SaveBooksSyncLog("Vendors", vendorId, newVendorId, "Success", "Vendor created successfully");
+            }
+            else
+            {
+                errorMsg = responseMap.get("message");
+                // 如果创建时提示已存在，尝试再次查找
+                if(errorMsg != null && errorMsg.contains("already exists"))
+                {
+                    info "Vendor already exists in Books, re-searching: " + vendorName;
+                    result.put("status", "exists");
+                    result.put("error", errorMsg);
+                }
+                else
+                {
+                    info "[ERR] Vendor create failed: " + errorMsg;
+                    result.put("error", errorMsg);
+                    result.put("status", "failed");
+                }
+
+                automation.SaveBooksSyncLog("Vendors", vendorId, "", "Failed", errorMsg);
+            }
+        }
+    }
+    catch (e)
+    {
+        errorMsg = "Exception: " + e.toString();
+        info "[ERR] Vendor sync exception: " + errorMsg;
+        result.put("error", errorMsg);
+        result.put("status", "failed");
+
+        automation.SaveBooksSyncLog("Vendors", vendorId, "", "Failed", errorMsg);
+    }
+
+    return result.toString();
+}
