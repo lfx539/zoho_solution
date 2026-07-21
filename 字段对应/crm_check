@@ -1,0 +1,164 @@
+Balance
+Balance
+Decimal
+Bank
+Bank
+Single Line
+Check Date
+Check_Date
+Date
+Check Expenses
+Check_Expenses
+Subform
+Check Items
+Check_Items
+Subform
+Check Name
+Name
+Single Line
+Check Owner
+Owner
+Lookup
+Cleared
+Cleared
+Boolean
+Cleared Date
+Cleared_Date
+Date
+Connected To
+Connected_To__s
+MultiModuleLookup
+Created By
+Created_By
+Single Line
+Currency Type
+Currency_Type
+Single Line
+Date Received
+Date_Received
+Date
+Email
+Email
+Email
+Email Opt Out
+Email_Opt_Out
+Boolean
+ExchangeRate
+ExchangeRate
+Decimal
+Location
+Location
+Single Line
+Modified By
+Modified_By
+Single Line
+Netsuite Id
+Netsuite_Id
+Single Line
+Payee Address
+Payee_Address
+Single Line
+Payee Country
+Payee_Country
+Single Line
+Posting Period
+Posting_Period
+Pick List
+Profile Image
+Record_Image
+Check Image
+Ref Number
+Ref_Number
+Single Line
+Secondary Email
+Secondary_Email
+Email
+Subsidiary
+Subsidiary
+Single Line
+Tag
+Tag
+Single Line
+Tax
+Tax
+Decimal
+To Be Printed
+To_Be_Printed
+Boolean
+Total
+Total
+Decimal
+Transaction Number
+Transaction_Number
+Single Line
+Vendor Name
+Vendor_Name
+Lookup
+Check Expenses
+Account
+Account
+Single Line
+Amount
+Amount
+Currency
+Created By
+Created_By
+Single Line
+Gross Amount
+Gross_Amount
+Currency
+GST
+GST
+Formula
+GST Code
+GST_Code
+Pick List
+isBillable
+isBillable
+Boolean
+Location
+Location
+Pick List
+Memo
+Memo
+Single Line
+Tax Rate
+Tax_Rate
+Decimal
+Check Items
+Amount
+Amount
+Currency
+Created By
+Created_By
+Single Line
+GST
+GST
+Formula
+GST Code
+GST_Code
+Pick List
+Product Description
+Product_Description
+Single Line
+Product Description Long
+Product_Description_Long
+Multi Line (Small)
+Product Name
+Product_Name
+Lookup
+Quantity
+Quantity
+Number
+Rate
+Rate
+Currency
+STotal
+STotal
+Currency
+Total
+Total
+Formula
+Units
+Units
+Pick List
