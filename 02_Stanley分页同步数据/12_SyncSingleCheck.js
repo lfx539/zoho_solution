@@ -192,16 +192,66 @@ if(subsidiaryObj != null)
 {
 	params.put("Subsidiary",subsidiaryObj.get("refName"));
 }
-// Vendor (Lookup)
+// Entity (Lookup) - entity 可能是 Vendor 或 Customer
 entityObj = checkDetail.get("entity");
 if(entityObj != null)
 {
-	vendorId = entityObj.get("id");
-	// 查找CRM中对应的Vendor
-	vendorRecord = zoho.crm.searchRecords("Vendors","(Netsuite_Id:equals:" + vendorId + ")");
-	if(vendorRecord != null && vendorRecord.size() > 0)
+	entityId = entityObj.get("id");
+	entityRefName = entityObj.get("refName");
+	// 从 links href 判断 entity 类型: /vendor/xxx 或 /customer/xxx
+	entityType = "";
+	entityLinks = entityObj.get("links");
+	if(entityLinks != null && entityLinks.size() > 0)
 	{
-		params.put("Vendor_Name",{"id":vendorRecord.get(0).get("id")});
+		entityHref = entityLinks.get(0).get("href");
+		if(entityHref != null)
+		{
+			if(entityHref.contains("/vendor/"))
+			{
+				entityType = "vendor";
+			}
+			else if(entityHref.contains("/customer/"))
+			{
+				entityType = "customer";
+			}
+		}
+	}
+	info "[DEBUG] Check entity: id=" + entityId + " | refName=" + entityRefName + " | type=" + entityType;
+	if(entityType == "vendor")
+	{
+		// 从 CRM Vendors 中查找
+		vendorRecord = zoho.crm.searchRecords("Vendors","(Netsuite_Id:equals:" + entityId + ")");
+		if(vendorRecord != null && vendorRecord.size() > 0)
+		{
+			vendorLookup = Map();
+			vendorLookup.put("id",vendorRecord.get(0).get("id"));
+			params.put("Vendor_Name",vendorLookup);
+			info "[OK] Vendor_Name lookup set: " + vendorRecord.get(0).get("id") + " (" + entityRefName + ")";
+		}
+		else
+		{
+			info "[WARN] Vendor not found by Netsuite_Id=" + entityId;
+		}
+	}
+	else if(entityType == "customer")
+	{
+		// 从 CRM Accounts 中查找
+		accountRecord = zoho.crm.searchRecords("Accounts","(Netsuite_ID:equals:" + entityId + ")");
+		if(accountRecord != null && accountRecord.size() > 0)
+		{
+			accountLookup = Map();
+			accountLookup.put("id",accountRecord.get(0).get("id"));
+			params.put("Account_Name",accountLookup);
+			info "[OK] Account_Name lookup set: " + accountRecord.get(0).get("id") + " (" + entityRefName + ")";
+		}
+		else
+		{
+			info "[WARN] Account not found by Netsuite_ID=" + entityId;
+		}
+	}
+	else
+	{
+		info "[WARN] Unknown entity type, cannot set lookup. entityId=" + entityId;
 	}
 }
 // Owner - 固定为Sean Ren
@@ -225,7 +275,9 @@ if(itemObj != null)
 				if(productRecord != null && productRecord.size() > 0)
 				{
 					itemParams = Map();
-					itemParams.put("Product_Name",{"id":productRecord.get(0).get("id")});
+					productLookup = Map();
+					productLookup.put("id",productRecord.get(0).get("id"));
+					itemParams.put("Product_Name",productLookup);
 					// Product_Description - 判断长度
 					description = item.get("description");
 					if(description != null)
@@ -390,7 +442,10 @@ if(existingCheck != null && existingCheck.size() > 0)
 				lineItemId = lineItem.get("id");
 				if(lineItemId != null)
 				{
-					itemsPayload.add({"id":lineItemId,"_delete":true});
+					deleteItemMap = Map();
+					deleteItemMap.put("id",lineItemId);
+					deleteItemMap.put("_delete",true);
+					itemsPayload.add(deleteItemMap);
 				}
 			}
 		}
@@ -415,7 +470,10 @@ if(existingCheck != null && existingCheck.size() > 0)
 				existingExpenseId = existingExpense.get("id");
 				if(existingExpenseId != null)
 				{
-					expensesPayload.add({"id":existingExpenseId,"_delete":true});
+					deleteExpenseMap = Map();
+					deleteExpenseMap.put("id",existingExpenseId);
+					deleteExpenseMap.put("_delete",true);
+					expensesPayload.add(deleteExpenseMap);
 				}
 			}
 		}

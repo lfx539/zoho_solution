@@ -1,0 +1,83 @@
+// ========================================
+// 测试 Books SalesOrder 行项目的 unit 字段
+// 用法：传入一个已存在的 Books SO ID，尝试更新其行项目的 unit
+// ========================================
+
+soId = "259067000001720087";  // 刚才创建的 SO
+
+config = standalone.GetBooksConfig().toMap();
+baseUrl = config.get("baseUrl");
+orgId = config.get("organizationId");
+
+// 1. 先获取当前 SO 的行项目
+info "===== Step 1: Get current SO =====";
+getResp = invokeurl
+[
+    url: baseUrl + "/salesorders/" + soId + "?organization_id=" + orgId
+    type: GET
+    connection: "books"
+];
+
+if(getResp.get("code") != 0)
+{
+    info "[ERR] Failed to get SO: " + getResp.get("message");
+    return "failed";
+}
+
+existingLineItems = getResp.get("salesorder").get("line_items");
+info "Found " + existingLineItems.size() + " line items";
+
+// 打印当前每个行项目的 unit 信息
+for each li in existingLineItems
+{
+    info "  Item: " + li.get("name") + " | unit: " + li.get("unit") + " | quantity: " + li.get("quantity") + " | item_id: " + li.get("item_id");
+}
+
+// 2. 更新第一个行项目的 unit 为 "Unit(25PKs)"
+info "===== Step 2: Update first line item unit =====";
+testLineItems = List();
+testLi = Map();
+testLi.put("item_id", existingLineItems.get(0).get("item_id"));
+testLi.put("name", existingLineItems.get(0).get("name"));
+testLi.put("quantity", existingLineItems.get(0).get("quantity"));
+testLi.put("rate", existingLineItems.get(0).get("rate"));
+testLi.put("unit", "Unit(25PKs)");  // 测试格式
+testLineItems.add(testLi);
+
+updateData = Map();
+updateData.put("customer_id", getResp.get("salesorder").get("customer_id"));
+updateData.put("date", getResp.get("salesorder").get("date"));
+updateData.put("line_items", testLineItems);
+
+info "Update payload: " + updateData.toString();
+
+updateResp = invokeurl
+[
+    url: baseUrl + "/salesorders/" + soId + "?organization_id=" + orgId
+    type: PUT
+    parameters: updateData.toString()
+    connection: "books"
+];
+
+info "Update response code: " + updateResp.get("code");
+info "Update response message: " + updateResp.get("message");
+
+// 3. 重新获取 SO 验证 unit 是否生效
+if(updateResp.get("code") == 0)
+{
+    info "===== Step 3: Verify =====";
+    verifyResp = invokeurl
+    [
+        url: baseUrl + "/salesorders/" + soId + "?organization_id=" + orgId
+        type: GET
+        connection: "books"
+    ];
+
+    verifyItems = verifyResp.get("salesorder").get("line_items");
+    for each vi in verifyItems
+    {
+        info "  Item: " + vi.get("name") + " | unit: '" + vi.get("unit") + "' | quantity: " + vi.get("quantity");
+    }
+}
+
+return "done";

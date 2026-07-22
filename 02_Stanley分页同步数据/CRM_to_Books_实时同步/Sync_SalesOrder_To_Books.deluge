@@ -145,6 +145,80 @@ string standalone.SyncSalesOrderToBooks(String soId)
 
         lineItems = List();
 
+        // 获取 Books 配置（用于查询 tax）
+        config = standalone.GetBooksConfig().toMap();
+        baseUrl = config.get("baseUrl");
+        orgId = config.get("organizationId");
+
+        // 获取 Books Tax 列表
+        taxMap = Map();  // key: tax_name, value: tax_id
+        try
+        {
+            taxResp = invokeurl
+            [
+                url: baseUrl + "/settings/taxes?organization_id=" + orgId
+                type: GET
+                connection: "books"
+            ];
+            if(taxResp != null && taxResp.get("code") == 0)
+            {
+                taxes = taxResp.get("taxes");
+                if(taxes != null)
+                {
+                    for each tax in taxes
+                    {
+                        taxName = tax.get("name");
+                        taxId = tax.get("tax_id");
+                        if(taxName != null && taxId != null)
+                        {
+                            taxMap.put(taxName, taxId);
+                        }
+                    }
+                }
+            }
+        }
+        catch(e)
+        {
+            info "[ERR] Failed to load taxes from /settings/taxes: " + e;
+        }
+
+        // 如果第一个路径没数据，试 /settings/tax
+        if(taxMap.size() == 0)
+        {
+            try
+            {
+                taxResp2 = invokeurl
+                [
+                    url: baseUrl + "/settings/tax?organization_id=" + orgId
+                    type: GET
+                    connection: "books"
+                ];
+                if(taxResp2 != null && taxResp2.get("code") == 0)
+                {
+                    taxes2 = taxResp2.get("taxes");
+                    if(taxes2 != null)
+                    {
+                        for each tx in taxes2
+                        {
+                            txName = tx.get("name");
+                            txId = tx.get("tax_id");
+                            if(txName != null && txId != null)
+                            {
+                                taxMap.put(txName, txId);
+                            }
+                        }
+                    }
+                }
+            }
+            catch(e2)
+            {
+                info "[ERR] Failed to load taxes from /settings/tax: " + e2;
+            }
+        }
+
+        info "[DEBUG] Loaded " + taxMap.size() + " taxes from Books";
+        info "[DEBUG] taxMap = " + taxMap.toString();
+
         for each item in productDetails
         {
             productObj = item.get("Product_Name");
@@ -217,6 +291,51 @@ string standalone.SyncSalesOrderToBooks(String soId)
             if(discount != null && discount > 0)
             {
                 lineItem.put("discount_amount", discount);
+            }
+
+            // Unit mapping: CRM "25PKs" -> Books "Unit(25PKs)"
+            // Books API 要求 unit 字段使用完整格式 "UnitGroupName(SubUnitName)"
+            crmUnit = item.get("Units");
+            if(crmUnit != null && crmUnit != "")
+            {
+                booksUnit = "Unit(" + crmUnit + ")";
+                lineItem.put("unit", booksUnit);
+                info "[DEBUG] Unit mapping: CRM '" + crmUnit + "' -> Books '" + booksUnit + "'";
+            }
+
+            // Tax mapping for SO:
+            // SO 子表没有 GST_Code 字段，GST 字段存的是税额
+            // 税额 > 0 → GST [10%]
+            // 税额 = 0 或 null → NA [0%]
+            gstAmount = item.get("GST");
+            info "[DEBUG] GST amount = " + gstAmount;
+            if(gstAmount != null && gstAmount > 0)
+            {
+                // 10% tax
+                gstTaxId = taxMap.get("GST [10%]");
+                if(gstTaxId != null)
+                {
+                    lineItem.put("tax_id", gstTaxId);
+                    info "[DEBUG] Applied 10% tax: " + gstTaxId;
+                }
+                else
+                {
+                    info "[DEBUG] GST [10%] tax_id not found in taxMap";
+                }
+            }
+            else
+            {
+                // 0% tax
+                naTaxId = taxMap.get("NA [0%]");
+                if(naTaxId != null)
+                {
+                    lineItem.put("tax_id", naTaxId);
+                    info "[DEBUG] Applied 0% tax: " + naTaxId;
+                }
+                else
+                {
+                    info "[DEBUG] NA [0%] tax_id not found in taxMap";
+                }
             }
 
             lineItems.add(lineItem);
