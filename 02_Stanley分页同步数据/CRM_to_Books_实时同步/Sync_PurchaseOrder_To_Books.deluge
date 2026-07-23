@@ -31,8 +31,20 @@ string standalone.SyncPurchaseOrderToBooks(String poId)
         {
             poNumber = po.get("Subject");
         }
-        info "========================================";
         info "Sync PO: " + poNumber;
+
+        // 用 CRM API 获取完整记录（zoho.crm.getRecordById 子表字段值可能为 null）
+        poFullResp = invokeurl
+        [
+            url: "https://www.zohoapis.com.au/crm/v8/Purchase_Orders/" + poId
+            type: GET
+            connection: "crm"
+        ];
+        if(poFullResp != null && poFullResp.get("data") != null && poFullResp.get("data").size() > 0)
+        {
+            po = poFullResp.get("data").get(0);
+            info "[DEBUG] PO keys = " + po.keys().toString();
+        }
 
         // ========================================
         // 步骤 2: 在 Books 中查找是否存在同 reference_number 的 PO
@@ -102,7 +114,12 @@ string standalone.SyncPurchaseOrderToBooks(String poId)
         info "[OK] Vendor synced: Vendor ID = " + vendorCustomerId;
 
         // 4. 构建行项目（Line Items）
+        // CRM REST API 返回的子表字段名可能是 Purchase_Items 或 Ordered_Items
         purchaseItems = po.get("Purchase_Items");
+        if(purchaseItems == null || purchaseItems.size() == 0)
+        {
+            purchaseItems = po.get("Ordered_Items");
+        }
         if(purchaseItems == null || purchaseItems.size() == 0)
         {
             errorMsg = "No purchase items found";
@@ -114,6 +131,43 @@ string standalone.SyncPurchaseOrderToBooks(String poId)
         }
 
         lineItems = List();
+
+        // 获取 Books Tax 列表
+        config = standalone.GetBooksConfig().toMap();
+        baseUrl = config.get("baseUrl");
+        orgId = config.get("organizationId");
+
+        taxMap = Map();  // key: tax_name, value: tax_id
+        try
+        {
+            taxResp = invokeurl
+            [
+                url: baseUrl + "/settings/taxes?organization_id=" + orgId
+                type: GET
+                connection: "books"
+            ];
+            if(taxResp != null && taxResp.get("code") == 0)
+            {
+                taxes = taxResp.get("taxes");
+                if(taxes != null)
+                {
+                    for each tax in taxes
+                    {
+                        taxName = tax.get("tax_name");
+                        taxId = tax.get("tax_id");
+                        if(taxName != null && taxId != null)
+                        {
+                            taxMap.put(taxName, taxId);
+                        }
+                    }
+                }
+            }
+        }
+        catch(e)
+        {
+            info "[ERR] Failed to load taxes: " + e;
+        }
+        info "[DEBUG] Loaded " + taxMap.size() + " taxes from Books";
 
         for each item in purchaseItems
         {
@@ -169,6 +223,99 @@ string standalone.SyncPurchaseOrderToBooks(String poId)
                 lineItem.put("discount_amount", discount);
             }
 
+            // Unit mapping: CRM "25PKs" -> Books unit_conversion_id（和 SO 一样）
+            crmUnit = item.get("Units");
+            if(crmUnit != null && crmUnit != "")
+            {
+                unitConversionId = null;
+                defaultPurchConvId = null;
+                try
+                {
+                    itemDetailResp = invokeurl
+                    [
+                        url: baseUrl + "/items/" + itemId + "?organization_id=" + orgId
+                        type: GET
+                        connection: "books"
+                    ];
+                    if(itemDetailResp != null && itemDetailResp.get("code") == 0)
+                    {
+                        itemDetail = itemDetailResp.get("item");
+                        defaultPurchConvId = itemDetail.get("default_purchase_unit_conversion_id");
+                        unitConvs = itemDetail.get("unit_conversions");
+                        if(unitConvs != null)
+                        {
+                            if(crmUnit.equalsIgnoreCase("Eachs") || crmUnit.equalsIgnoreCase("EA") || crmUnit.equalsIgnoreCase("Each"))
+                            {
+                                booksUnitFormat = "Unit";
+                            }
+                            else
+                            {
+                                booksUnitFormat = "Unit(" + crmUnit + ")";
+                            }
+                            for each uc in unitConvs
+                            {
+                                tu = uc.get("target_unit");
+                                if(tu != null && tu.equalsIgnoreCase(booksUnitFormat))
+                                {
+                                    unitConversionId = uc.get("unit_conversion_id");
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+                catch(e)
+                {
+                    info "[WARN] Failed to get item unit_conversions: " + e;
+                }
+
+                if(unitConversionId != null)
+                {
+                    lineItem.put("unit_conversion_id", unitConversionId);
+                }
+                else if(defaultPurchConvId != null && defaultPurchConvId != "")
+                {
+                    lineItem.put("unit_conversion_id", defaultPurchConvId);
+                }
+                else
+                {
+                    lineItem.put("unit", "Unit(" + crmUnit + ")");
+                }
+            }
+
+            // Tax mapping for PO:
+            // GST_Code 格式可能是 "AU" 或 "GST:TS-AU" 等，包含 "AU" 即为澳洲 → 10%
+            // 没有 GST_Code → 默认 10%
+            // 其他 → 0%（出口免税）
+            gstCode = item.get("GST_Code");
+            if(gstCode == null || gstCode == "")
+            {
+                // 没有 GST_Code，默认 10%
+                gstTaxId = taxMap.get("GST");
+                if(gstTaxId != null)
+                {
+                    lineItem.put("tax_id", gstTaxId);
+                }
+            }
+            else if(gstCode.equalsIgnoreCase("AU") || gstCode.contains("AU"))
+            {
+                // AU 或 GST:TS-AU → 10% GST
+                gstTaxId = taxMap.get("GST");
+                if(gstTaxId != null)
+                {
+                    lineItem.put("tax_id", gstTaxId);
+                }
+            }
+            else
+            {
+                naTaxId = taxMap.get("NA");
+                if(naTaxId != null)
+                {
+                    lineItem.put("tax_id", naTaxId);
+                    info "[DEBUG] GST_Code=" + gstCode + " (non-AU), applied 0% tax: " + naTaxId;
+                }
+            }
+
             lineItems.add(lineItem);
         }
 
@@ -210,32 +357,41 @@ string standalone.SyncPurchaseOrderToBooks(String poId)
             poData.put("terms", terms);
         }
 
-        // Shipping Address
+        // Shipping Address（拼接所有地址字段为一个 address 字符串，限制 80 字符）
         shippingAddress = Map();
+        shipFullAddr = "";
         shipStreet = po.get("Shipping_Street");
-        if(shipStreet != null) { shippingAddress.put("address", shipStreet); }
+        if(shipStreet != null && shipStreet != "") { shipFullAddr = shipFullAddr + shipStreet + ", "; }
         shipCity = po.get("Shipping_City");
-        if(shipCity != null) { shippingAddress.put("city", shipCity); }
+        if(shipCity != null && shipCity != "") { shipFullAddr = shipFullAddr + shipCity + ", "; }
         shipState = po.get("Shipping_State");
-        if(shipState != null) { shippingAddress.put("state", shipState); }
+        if(shipState != null && shipState != "") { shipFullAddr = shipFullAddr + shipState + " "; }
         shipZip = po.get("Shipping_Code");
-        if(shipZip != null) { shippingAddress.put("zip", shipZip); }
+        if(shipZip != null && shipZip != "") { shipFullAddr = shipFullAddr + shipZip + ", "; }
         shipCountry = po.get("Shipping_Country");
-        if(shipCountry != null) { shippingAddress.put("country", shipCountry); }
+        if(shipCountry != null && shipCountry != "") { shipFullAddr = shipFullAddr + shipCountry; }
+        // 去掉末尾多余的逗号和空格
+        if(shipFullAddr.endsWith(", ")) { shipFullAddr = shipFullAddr.substring(0, shipFullAddr.length() - 2); }
+        if(shipFullAddr.length() > 80) { shipFullAddr = shipFullAddr.substring(0, 80); }
+        if(shipFullAddr != "") { shippingAddress.put("address", shipFullAddr); }
         poData.put("shipping_address", shippingAddress);
 
         // Billing Address
         billingAddress = Map();
+        billFullAddr = "";
         billStreet = po.get("Billing_Street");
-        if(billStreet != null) { billingAddress.put("address", billStreet); }
+        if(billStreet != null && billStreet != "") { billFullAddr = billFullAddr + billStreet + ", "; }
         billCity = po.get("Billing_City");
-        if(billCity != null) { billingAddress.put("city", billCity); }
+        if(billCity != null && billCity != "") { billFullAddr = billFullAddr + billCity + ", "; }
         billState = po.get("Billing_State");
-        if(billState != null) { billingAddress.put("state", billState); }
+        if(billState != null && billState != "") { billFullAddr = billFullAddr + billState + " "; }
         billZip = po.get("Billing_Code");
-        if(billZip != null) { billingAddress.put("zip", billZip); }
+        if(billZip != null && billZip != "") { billFullAddr = billFullAddr + billZip + ", "; }
         billCountry = po.get("Billing_Country");
-        if(billCountry != null) { billingAddress.put("country", billCountry); }
+        if(billCountry != null && billCountry != "") { billFullAddr = billFullAddr + billCountry; }
+        if(billFullAddr.endsWith(", ")) { billFullAddr = billFullAddr.substring(0, billFullAddr.length() - 2); }
+        if(billFullAddr.length() > 80) { billFullAddr = billFullAddr.substring(0, 80); }
+        if(billFullAddr != "") { billingAddress.put("address", billFullAddr); }
         poData.put("billing_address", billingAddress);
 
         // ========================================

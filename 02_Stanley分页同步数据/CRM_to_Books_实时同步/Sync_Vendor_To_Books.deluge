@@ -19,12 +19,10 @@ string standalone.SyncVendorToBooks(String vendorId)
         if(vendor == null)
         {
             result.put("error", "Vendor not found in CRM");
-            info "[ERR] Vendor not found: " + vendorId;
             return result.toString();
         }
 
         vendorName = vendor.get("Vendor_Name");
-        info "========================================";
         info "Sync Vendor: " + vendorName;
 
         // 2. 获取 Books 配置
@@ -32,17 +30,20 @@ string standalone.SyncVendorToBooks(String vendorId)
         baseUrl = config.get("baseUrl");
         orgId = config.get("organizationId");
 
-        // ========================================
-        // 步骤 3: 在 Books 中查找是否存在同名 Vendor
-        // ========================================
+        // 优先检查 CRM 中的 Books_Vendor_ID
         existingVendorId = null;
+        crmBooksVendorId = vendor.get("Books_Vendor_ID");
+        if(crmBooksVendorId != null && crmBooksVendorId != "")
+        {
+            existingVendorId = crmBooksVendorId;
+        }
 
-        // 优先通过名称查找
-        if(vendorName != null && vendorName != "")
+        // 如果 CRM 中没有，通过名称在 Books 中搜索
+        if(existingVendorId == null && vendorName != null && vendorName != "")
         {
             searchResp = invokeurl
             [
-                url: baseUrl + "/contacts/vendors?organization_id=" + orgId + "&search_text=" + encodeUrl(vendorName)
+                url: baseUrl + "/contacts?organization_id=" + orgId + "&search_text=" + encodeUrl(vendorName)
                 type: GET
                 connection: "books"
             ];
@@ -52,19 +53,29 @@ string standalone.SyncVendorToBooks(String vendorId)
                 contacts = searchResp.get("contacts");
                 if(contacts != null && contacts.size() > 0)
                 {
-                    existingVendorId = contacts.get(0).get("contact_id");
-                    info ">> Found existing Vendor: " + existingVendorId;
+                    // 只取 contact_type=vendor 的结果，包含匹配名称
+                    for each c in contacts
+                    {
+                        cType = c.get("contact_type");
+                        cName = c.get("contact_name");
+                        cCompanyName = c.get("company_name");
+                        if(cType != null && cType.equalsIgnoreCase("vendor"))
+                        {
+                            if((cName != null && (cName.equalsIgnoreCase(vendorName) || vendorName.contains(cName) || cName.contains(vendorName)))
+                                || (cCompanyName != null && (cCompanyName.equalsIgnoreCase(vendorName) || vendorName.contains(cCompanyName) || cCompanyName.contains(vendorName))))
+                            {
+                                existingVendorId = c.get("contact_id");
+                                break;
+                            }
+                        }
+                    }
                 }
             }
         }
 
-        // ========================================
-        // 步骤 4: 构建 Books Vendor 数据
-        // ========================================
+        // 构建 Books Vendor 数据
         vendorData = Map();
-
-        // 基础信息
-        vendorData.put("vendor_name", vendorName);
+        vendorData.put("contact_name", vendorName);
         vendorData.put("company_name", vendorName);
         vendorData.put("contact_type", "vendor");
         vendorData.put("email", vendor.get("Email"));
@@ -102,21 +113,15 @@ string standalone.SyncVendorToBooks(String vendorId)
         shippingAddress.put("country", vendor.get("Shipping_Country"));
         vendorData.put("shipping_address", shippingAddress);
 
-        // 其他信息
         vendorData.put("notes", vendor.get("Description"));
 
-        // ========================================
-        // 步骤 5: 更新或创建
-        // ========================================
+        // 更新或创建
         if(existingVendorId != null)
         {
-            // ========================================
             // 已有 Books Vendor：执行更新操作
-            // ========================================
-            info ">> Update mode";
             response = invokeurl
             [
-                url: baseUrl + "/contacts/vendors/" + existingVendorId + "?organization_id=" + orgId
+                url: baseUrl + "/contacts/" + existingVendorId + "?organization_id=" + orgId
                 type: PUT
                 parameters: vendorData.toString()
                 connection: "books"
@@ -128,7 +133,6 @@ string standalone.SyncVendorToBooks(String vendorId)
             {
                 info "[OK] Vendor updated: " + vendorName;
 
-                // 更新 CRM 中的 Books_Vendor_ID
                 updateMap = Map();
                 updateMap.put("Books_Vendor_ID", existingVendorId);
                 zoho.crm.updateRecord("Vendors", vendorId.toString(), updateMap);
@@ -151,13 +155,10 @@ string standalone.SyncVendorToBooks(String vendorId)
         }
         else
         {
-            // ========================================
             // 没有 Books Vendor：执行创建操作
-            // ========================================
-            info ">> Create mode";
             response = invokeurl
             [
-                url: baseUrl + "/contacts/vendors?organization_id=" + orgId
+                url: baseUrl + "/contacts?organization_id=" + orgId
                 type: POST
                 parameters: vendorData.toString()
                 connection: "books"
@@ -170,9 +171,8 @@ string standalone.SyncVendorToBooks(String vendorId)
                 contact = responseMap.get("contact");
                 newVendorId = contact.get("contact_id");
 
-                info "[OK] Vendor created: " + vendorName + " (Books ID: " + newVendorId + ")";
+                info "[OK] Vendor created: " + vendorName;
 
-                // 更新 CRM Vendor
                 updateMap = Map();
                 updateMap.put("Books_Vendor_ID", newVendorId);
                 zoho.crm.updateRecord("Vendors", vendorId.toString(), updateMap);
@@ -186,19 +186,52 @@ string standalone.SyncVendorToBooks(String vendorId)
             else
             {
                 errorMsg = responseMap.get("message");
-                // 如果创建时提示已存在，尝试再次查找
+                // 如果创建时提示已存在，尝试再次查找（可能搜索时没精确匹配到）
                 if(errorMsg != null && errorMsg.contains("already exists"))
                 {
-                    info "Vendor already exists in Books, re-searching: " + vendorName;
-                    result.put("status", "exists");
-                    result.put("error", errorMsg);
+                    // 放宽搜索条件：不限定 contact_type，遍历所有结果
+                    retryResp = invokeurl
+                    [
+                        url: baseUrl + "/contacts?organization_id=" + orgId + "&search_text=" + encodeUrl(vendorName)
+                        type: GET
+                        connection: "books"
+                    ];
+                    if(retryResp.get("code") == 0)
+                    {
+                        retryContacts = retryResp.get("contacts");
+                        if(retryContacts != null)
+                        {
+                            for each rc in retryContacts
+                            {
+                                rcType = rc.get("contact_type");
+                                rcName = rc.get("contact_name");
+                                rcCompanyName = rc.get("company_name");
+                                if(rcType != null && rcType.equalsIgnoreCase("vendor"))
+                                {
+                                    if((rcName != null && (rcName.equalsIgnoreCase(vendorName) || vendorName.contains(rcName) || rcName.contains(vendorName)))
+                                        || (rcCompanyName != null && (rcCompanyName.equalsIgnoreCase(vendorName) || vendorName.contains(rcCompanyName) || rcCompanyName.contains(vendorName))))
+                                    {
+                                        retryId = rc.get("contact_id");
+                                        // 更新 CRM 中的 Books_Vendor_ID
+                                        updateMap = Map();
+                                        updateMap.put("Books_Vendor_ID", retryId);
+                                        zoho.crm.updateRecord("Vendors", vendorId.toString(), updateMap);
+
+                                        result.put("vendorId", retryId);
+                                        result.put("status", "success");
+                                        result.put("action", "found_existing");
+
+                                        automation.SaveBooksSyncLog("Vendors", vendorId, retryId, "Success", "Vendor found existing on retry");
+                                        return result.toString();
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
-                else
-                {
-                    info "[ERR] Vendor create failed: " + errorMsg;
-                    result.put("error", errorMsg);
-                    result.put("status", "failed");
-                }
+                info "[ERR] Vendor create failed: " + errorMsg;
+                result.put("error", errorMsg);
+                result.put("status", "failed");
 
                 automation.SaveBooksSyncLog("Vendors", vendorId, "", "Failed", errorMsg);
             }

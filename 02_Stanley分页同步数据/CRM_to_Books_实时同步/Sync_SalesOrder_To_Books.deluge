@@ -22,7 +22,6 @@ string standalone.SyncSalesOrderToBooks(String soId)
         if(so == null)
         {
             result.put("error", "Sales Order not found");
-            info "[ERR] Sales Order not found: " + soId;
             return result.toString();
         }
 
@@ -31,7 +30,6 @@ string standalone.SyncSalesOrderToBooks(String soId)
         {
             soNumber = so.get("Subject");
         }
-        info "========================================";
         info "Sync SO: " + soNumber;
 
         // 用 CRM API 获取完整记录（zoho.crm.getRecordById 子表字段值可能为 null）
@@ -56,7 +54,6 @@ string standalone.SyncSalesOrderToBooks(String soId)
         if(crmBooksSoId != null && crmBooksSoId != "")
         {
             existingSoId = crmBooksSoId;
-            info ">> Found in CRM Books_SO_ID: " + existingSoId;
         }
 
         // 如果 CRM 中没有，通过 reference_number 在 Books 中搜索
@@ -79,7 +76,6 @@ string standalone.SyncSalesOrderToBooks(String soId)
                 if(salesorders != null && salesorders.size() > 0)
                 {
                     existingSoId = salesorders.get(0).get("salesorder_id");
-                    info ">> Found existing SO: " + existingSoId;
                 }
             }
         }
@@ -89,7 +85,6 @@ string standalone.SyncSalesOrderToBooks(String soId)
         if(accountObj == null)
         {
             errorMsg = "Account is required";
-            info "[ERR] " + errorMsg;
             result.put("error", errorMsg);
             result.put("status", "failed");
             automation.SaveBooksSyncLog("Sales_Orders", soId, "", "Failed", errorMsg);
@@ -97,29 +92,24 @@ string standalone.SyncSalesOrderToBooks(String soId)
         }
 
         accountId = accountObj.get("id");
-        info ">> Sync Account: " + accountId;
         customerId = standalone.SyncAccountToBooks(accountId);
 
         if(customerId == null || customerId == "")
         {
             errorMsg = "Failed to sync Account to Books";
-            info "[ERR] " + errorMsg;
             result.put("error", errorMsg);
             result.put("status", "failed");
             automation.SaveBooksSyncLog("Sales_Orders", soId, "", "Failed", errorMsg);
             return result.toString();
         }
-        // Account exists but we don't have its Books ID
         if(customerId == "exists")
         {
             errorMsg = "Account exists in Books but could not find ID";
-            info "[ERR] " + errorMsg;
             result.put("error", errorMsg);
             result.put("status", "failed");
             automation.SaveBooksSyncLog("Sales_Orders", soId, "", "Failed", errorMsg);
             return result.toString();
         }
-        info "[OK] Account synced: Customer ID = " + customerId;
 
         // 4. 构建行项目（Line Items）
         // CRM REST API 返回的子表字段名可能是 Product_Details 或 Ordered_Items
@@ -128,15 +118,9 @@ string standalone.SyncSalesOrderToBooks(String soId)
         {
             productDetails = so.get("Ordered_Items");
         }
-        pdCount = "null";
-        if(so.get("Product_Details") != null) { pdCount = so.get("Product_Details").size(); }
-        oiCount = "null";
-        if(so.get("Ordered_Items") != null) { oiCount = so.get("Ordered_Items").size(); }
-        info "[ DEBUG ]Product_Details=" + pdCount + " | Ordered_Items=" + oiCount;
         if(productDetails == null || productDetails.size() == 0)
         {
             errorMsg = "No line items found";
-            info "[ERR] " + errorMsg;
             result.put("error", errorMsg);
             result.put("status", "failed");
             automation.SaveBooksSyncLog("Sales_Orders", soId, "", "Failed", errorMsg);
@@ -145,7 +129,7 @@ string standalone.SyncSalesOrderToBooks(String soId)
 
         lineItems = List();
 
-        // 获取 Books 配置（用于查询 tax）
+        // 获取 Books 配置
         config = standalone.GetBooksConfig().toMap();
         baseUrl = config.get("baseUrl");
         orgId = config.get("organizationId");
@@ -167,7 +151,7 @@ string standalone.SyncSalesOrderToBooks(String soId)
                 {
                     for each tax in taxes
                     {
-                        taxName = tax.get("name");
+                        taxName = tax.get("tax_name");
                         taxId = tax.get("tax_id");
                         if(taxName != null && taxId != null)
                         {
@@ -179,45 +163,8 @@ string standalone.SyncSalesOrderToBooks(String soId)
         }
         catch(e)
         {
-            info "[ERR] Failed to load taxes from /settings/taxes: " + e;
+            info "[ERR] Failed to load taxes: " + e;
         }
-
-        // 如果第一个路径没数据，试 /settings/tax
-        if(taxMap.size() == 0)
-        {
-            try
-            {
-                taxResp2 = invokeurl
-                [
-                    url: baseUrl + "/settings/tax?organization_id=" + orgId
-                    type: GET
-                    connection: "books"
-                ];
-                if(taxResp2 != null && taxResp2.get("code") == 0)
-                {
-                    taxes2 = taxResp2.get("taxes");
-                    if(taxes2 != null)
-                    {
-                        for each tx in taxes2
-                        {
-                            txName = tx.get("name");
-                            txId = tx.get("tax_id");
-                            if(txName != null && txId != null)
-                            {
-                                taxMap.put(txName, txId);
-                            }
-                        }
-                    }
-                }
-            }
-            catch(e2)
-            {
-                info "[ERR] Failed to load taxes from /settings/tax: " + e2;
-            }
-        }
-
-        info "[DEBUG] Loaded " + taxMap.size() + " taxes from Books";
-        info "[DEBUG] taxMap = " + taxMap.toString();
 
         for each item in productDetails
         {
@@ -234,13 +181,11 @@ string standalone.SyncSalesOrderToBooks(String soId)
             productId = productObj.get("id");
 
             // Sync Product 到 Books Item
-            info ">> Sync Product: " + productId;
             itemId = standalone.SyncProductToBooks(productId);
 
             if(itemId == null || itemId == "")
             {
                 errorMsg = "Failed to sync Product: " + productId;
-                info "[ERR] " + errorMsg;
                 result.put("error", errorMsg);
                 result.put("status", "failed");
                 automation.SaveBooksSyncLog("Sales_Orders", soId, "", "Failed", errorMsg);
@@ -255,9 +200,6 @@ string standalone.SyncSalesOrderToBooks(String soId)
             {
                 lineItem.put("name", productName);
             }
-            // [ DEBUG ]打印子表 item 的所有 key，确认 rate 字段名
-            info "[ DEBUG ]item keys = " + item.keys().toString();
-            info "[ DEBUG ]list_price=" + item.get("list_price") + " | unit_price=" + item.get("unit_price") + " | Rate=" + item.get("Rate") + " | rate=" + item.get("rate");
             qty = item.get("Quantity");
             if(qty == null) { qty = item.get("quantity"); }
             if(qty != null && qty != "")
@@ -268,7 +210,7 @@ string standalone.SyncSalesOrderToBooks(String soId)
             {
                 lineItem.put("quantity", 1);
             }
-            // rate: CRM 子表字段名是 list_price 或 unit_price
+            // rate: CRM 子表字段名可能是 list_price / unit_price / Rate / rate
             rateVal = item.get("list_price");
             if(rateVal == null || rateVal == "") { rateVal = item.get("unit_price"); }
             if(rateVal == null || rateVal == "") { rateVal = item.get("Rate"); }
@@ -293,62 +235,104 @@ string standalone.SyncSalesOrderToBooks(String soId)
                 lineItem.put("discount_amount", discount);
             }
 
-            // Unit mapping: CRM "25PKs" -> Books "Unit(25PKs)"
-            // Books API 要求 unit 字段使用完整格式 "UnitGroupName(SubUnitName)"
+            // Unit mapping: CRM "25PKs" -> Books unit_conversion_id
+            // Books SO 行项目使用 unit_conversion_id（而非 unit 字符串）来设置单位
+            // 步骤：1) 获取 Item 的 unit_conversions  2) 用 "Unit(CRM_Unit)" 匹配 target_unit  3) 取 unit_conversion_id
             crmUnit = item.get("Units");
             if(crmUnit != null && crmUnit != "")
             {
-                booksUnit = "Unit(" + crmUnit + ")";
-                lineItem.put("unit", booksUnit);
-                info "[DEBUG] Unit mapping: CRM '" + crmUnit + "' -> Books '" + booksUnit + "'";
-            }
-
-            // Tax mapping for SO:
-            // SO 子表没有 GST_Code 字段，GST 字段存的是税额
-            // 税额 > 0 → GST [10%]
-            // 税额 = 0 或 null → NA [0%]
-            gstAmount = item.get("GST");
-            info "[DEBUG] GST amount = " + gstAmount;
-            if(gstAmount != null && gstAmount > 0)
-            {
-                // 10% tax
-                gstTaxId = taxMap.get("GST [10%]");
-                if(gstTaxId != null)
+                unitConversionId = null;
+                defaultSalesConvId = null;
+                try
                 {
-                    lineItem.put("tax_id", gstTaxId);
-                    info "[DEBUG] Applied 10% tax: " + gstTaxId;
+                    itemDetailResp = invokeurl
+                    [
+                        url: baseUrl + "/items/" + itemId + "?organization_id=" + orgId
+                        type: GET
+                        connection: "books"
+                    ];
+                    if(itemDetailResp != null && itemDetailResp.get("code") == 0)
+                    {
+                        itemDetail = itemDetailResp.get("item");
+                        defaultSalesConvId = itemDetail.get("default_sales_unit_conversion_id");
+                        unitConvs = itemDetail.get("unit_conversions");
+                        if(unitConvs != null)
+                        {
+                            // CRM "Eachs" / "EA" 对应 Books base unit "Unit"
+                            // 其他: Books target_unit 格式 "Unit(25PKs)"，CRM 格式 "25PKs"
+                            if(crmUnit.equalsIgnoreCase("Eachs") || crmUnit.equalsIgnoreCase("EA") || crmUnit.equalsIgnoreCase("Each"))
+                            {
+                                booksUnitFormat = "Unit";
+                            }
+                            else
+                            {
+                                booksUnitFormat = "Unit(" + crmUnit + ")";
+                            }
+                            for each uc in unitConvs
+                            {
+                                tu = uc.get("target_unit");
+                                if(tu != null && tu.equalsIgnoreCase(booksUnitFormat))
+                                {
+                                    unitConversionId = uc.get("unit_conversion_id");
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+                catch(e)
+                {
+                    info "[WARN] Failed to get item unit_conversions: " + e;
+                }
+
+                if(unitConversionId != null)
+                {
+                    lineItem.put("unit_conversion_id", unitConversionId);
+                }
+                else if(defaultSalesConvId != null && defaultSalesConvId != "")
+                {
+                    lineItem.put("unit_conversion_id", defaultSalesConvId);
                 }
                 else
                 {
-                    info "[DEBUG] GST [10%] tax_id not found in taxMap";
+                    // 最后 fallback: 旧方式 unit 字符串
+                    lineItem.put("unit", "Unit(" + crmUnit + ")");
+                }
+            }
+
+            // Tax mapping for SO:
+            // 没有 GST_Code → 默认 10% GST（澳洲国内销售）
+            // 有 GST_Code → 区分 AU → 10%，非 AU → 0%
+            gstCode = item.get("GST_Code");
+            if(gstCode == null || gstCode == "")
+            {
+                gstTaxId = taxMap.get("GST");
+                if(gstTaxId != null)
+                {
+                    lineItem.put("tax_id", gstTaxId);
+                }
+            }
+            else if(gstCode.equalsIgnoreCase("AU"))
+            {
+                gstTaxId = taxMap.get("GST");
+                if(gstTaxId != null)
+                {
+                    lineItem.put("tax_id", gstTaxId);
                 }
             }
             else
             {
-                // 0% tax
-                naTaxId = taxMap.get("NA [0%]");
+                naTaxId = taxMap.get("NA");
                 if(naTaxId != null)
                 {
                     lineItem.put("tax_id", naTaxId);
-                    info "[DEBUG] Applied 0% tax: " + naTaxId;
-                }
-                else
-                {
-                    info "[DEBUG] NA [0%] tax_id not found in taxMap";
                 }
             }
 
             lineItems.add(lineItem);
         }
 
-        info "[OK] Built line items";
-
-        // 5. 获取 Books 配置
-        config = standalone.GetBooksConfig().toMap();
-        baseUrl = config.get("baseUrl");
-        orgId = config.get("organizationId");
-
-        // 6. 构建 Books Sales Order 数据
+        // 5. 构建 Books Sales Order 数据
         soData = Map();
         soData.put("customer_id", customerId);
         soData.put("date", so.get("Created_Time").substring(0, 10));
@@ -427,14 +411,11 @@ string standalone.SyncSalesOrderToBooks(String soId)
         soData.put("billing_address", billingAddress);
 
         // ========================================
-        // 步骤 7: 更新或创建
+        // 步骤 6: 更新或创建
         // ========================================
         if(existingSoId != null)
         {
-            // ========================================
             // 已有 Books SO：执行更新操作
-            // ========================================
-            info ">> Update mode";
             response = invokeurl
             [
                 url: baseUrl + "/salesorders/" + existingSoId + "?organization_id=" + orgId
@@ -448,7 +429,6 @@ string standalone.SyncSalesOrderToBooks(String soId)
             {
                 info "[OK] SO updated: " + soNumber;
 
-                // 更新 CRM 中的 Books_SO_ID
                 updateMap = Map();
                 updateMap.put("Books_SO_ID", existingSoId);
                 updateMap.put("Books_Sync_Status", "Success");
@@ -477,10 +457,7 @@ string standalone.SyncSalesOrderToBooks(String soId)
         }
         else
         {
-            // ========================================
             // 没有 Books SO：执行创建操作
-            // ========================================
-            info ">> Create mode";
             response = invokeurl
             [
                 url: baseUrl + "/salesorders?organization_id=" + orgId
