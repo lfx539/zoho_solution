@@ -196,17 +196,40 @@ string standalone.SyncPurchaseOrderToBooks(String poId)
             productId = productObj.get("id");
 
             // Sync Product 到 Books Item
-            info ">> Sync Product: " + productId;
             itemId = standalone.SyncProductToBooks(productId);
 
             if(itemId == null || itemId == "")
             {
                 errorMsg = "Failed to sync Product: " + productId;
-                info "[ERR] " + errorMsg;
                 result.put("error", errorMsg);
                 result.put("status", "failed");
                 automation.SaveBooksSyncLog("Purchase_Orders", poId, "", "Failed", errorMsg);
                 return result.toString();
+            }
+
+            // 检查 Item 是否有采购信息（没有采购信息的 Item 不能加入 PO）
+            hasPurchaseInfo = false;
+            try
+            {
+                itemCheckResp = invokeurl
+                [
+                    url: baseUrl + "/items/" + itemId + "?organization_id=" + orgId
+                    type: GET
+                    connection: "books"
+                ];
+                if(itemCheckResp != null && itemCheckResp.get("code") == 0)
+                {
+                    itemCheck = itemCheckResp.get("item");
+                    purchRate = itemCheck.get("purchase_rate");
+                    hasPurchaseInfo = (purchRate != null && purchRate != "" && purchRate != 0);
+                }
+            }
+            catch(e) {}
+
+            if(!hasPurchaseInfo)
+            {
+                info "[WARN] Item " + itemId + " has no purchase info, skipping for PO";
+                continue;
             }
 
             // 构建行项目
