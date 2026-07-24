@@ -301,8 +301,10 @@ string standalone.SyncSalesOrderToBooks(String soId)
             }
 
             // Tax mapping for SO:
-            // 没有 GST_Code → 默认 10% GST（澳洲国内销售）
-            // 有 GST_Code → 区分 AU → 10%，非 AU → 0%
+            // GST_Code 固定格式: "GST:NA-AU" 或 "GST:TS-AU"
+            // GST:TS-AU → 10% GST
+            // GST:NA-AU → 0% NA
+            // 没有 GST_Code → 默认 10%
             gstCode = item.get("GST_Code");
             if(gstCode == null || gstCode == "")
             {
@@ -312,20 +314,20 @@ string standalone.SyncSalesOrderToBooks(String soId)
                     lineItem.put("tax_id", gstTaxId);
                 }
             }
-            else if(gstCode.equalsIgnoreCase("AU"))
-            {
-                gstTaxId = taxMap.get("GST");
-                if(gstTaxId != null)
-                {
-                    lineItem.put("tax_id", gstTaxId);
-                }
-            }
-            else
+            else if(gstCode.contains("NA-AU"))
             {
                 naTaxId = taxMap.get("NA");
                 if(naTaxId != null)
                 {
                     lineItem.put("tax_id", naTaxId);
+                }
+            }
+            else
+            {
+                gstTaxId = taxMap.get("GST");
+                if(gstTaxId != null)
+                {
+                    lineItem.put("tax_id", gstTaxId);
                 }
             }
 
@@ -367,6 +369,12 @@ string standalone.SyncSalesOrderToBooks(String soId)
         if(shipCost != null && shipCost != "")
         {
             soData.put("shipping_charge", shipCost);
+            // Shipping Charge Tax 默认 10% GST
+            gstTaxId = taxMap.get("GST");
+            if(gstTaxId != null)
+            {
+                soData.put("shipping_charge_tax_id", gstTaxId);
+            }
         }
         disc = so.get("Discount");
         if(disc != null && disc != "")

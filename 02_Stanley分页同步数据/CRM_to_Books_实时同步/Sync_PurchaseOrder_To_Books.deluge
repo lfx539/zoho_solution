@@ -284,9 +284,10 @@ string standalone.SyncPurchaseOrderToBooks(String poId)
             }
 
             // Tax mapping for PO:
-            // GST_Code 格式可能是 "AU" 或 "GST:TS-AU" 等，包含 "AU" 即为澳洲 → 10%
+            // GST_Code 固定格式: "GST:NA-AU" 或 "GST:TS-AU"
+            // GST:TS-AU → 10% GST
+            // GST:NA-AU → 0% NA
             // 没有 GST_Code → 默认 10%
-            // 其他 → 0%（出口免税）
             gstCode = item.get("GST_Code");
             if(gstCode == null || gstCode == "")
             {
@@ -297,22 +298,24 @@ string standalone.SyncPurchaseOrderToBooks(String poId)
                     lineItem.put("tax_id", gstTaxId);
                 }
             }
-            else if(gstCode.equalsIgnoreCase("AU") || gstCode.contains("AU"))
+            else if(gstCode.contains("NA-AU"))
             {
-                // AU 或 GST:TS-AU → 10% GST
-                gstTaxId = taxMap.get("GST");
-                if(gstTaxId != null)
-                {
-                    lineItem.put("tax_id", gstTaxId);
-                }
-            }
-            else
-            {
+                // GST:NA-AU → 0%
                 naTaxId = taxMap.get("NA");
                 if(naTaxId != null)
                 {
                     lineItem.put("tax_id", naTaxId);
-                    info "[DEBUG] GST_Code=" + gstCode + " (non-AU), applied 0% tax: " + naTaxId;
+                    info "[DEBUG] GST_Code=" + gstCode + " (NA-AU), applied 0% tax: " + naTaxId;
+                }
+            }
+            else
+            {
+                // GST:TS-AU → 10% GST
+                gstTaxId = taxMap.get("GST");
+                if(gstTaxId != null)
+                {
+                    lineItem.put("tax_id", gstTaxId);
+                    info "[DEBUG] GST_Code=" + gstCode + " (TS-AU), applied 10% tax: " + gstTaxId;
                 }
             }
 
