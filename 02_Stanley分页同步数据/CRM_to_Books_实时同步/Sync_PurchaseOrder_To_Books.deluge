@@ -152,6 +152,59 @@ try
 		info "[ERR] Failed to load taxes: " + e;
 	}
 	info "[DEBUG] Loaded " + taxMap.size() + " taxes from Books";
+
+	// 预加载 "Unit" 的 unit_conversion_id（全局共享，所有 item 共用同一套 unit conversions）
+	unitConversionMap = Map();
+	try 
+	{
+		// 从任意一个有 unit_conversions 的 item 获取全局 unit conversion 列表
+		firstItemId = null;
+		for each  fi in purchaseItems
+		{
+			fiProductObj = fi.get("Product_Name");
+			if(fiProductObj != null)
+			{
+				fiProductId = fiProductObj.get("id");
+				fiItemId = standalone.SyncProductToBooks(fiProductId);
+				if(fiItemId != null && fiItemId != "")
+				{
+					firstItemId = fiItemId;
+				}
+				break;
+			}
+		}
+		if(firstItemId != null)
+		{
+			ucResp = invokeurl
+			[
+				url :baseUrl + "/items/" + firstItemId + "?organization_id=" + orgId
+				type :GET
+				connection:"books"
+			];
+			if(ucResp != null && ucResp.get("code") == 0)
+			{
+				ucItem = ucResp.get("item");
+				ucConvs = ucItem.get("unit_conversions");
+				if(ucConvs != null)
+				{
+					for each  u in ucConvs
+					{
+						tu = u.get("target_unit");
+						ucid = u.get("unit_conversion_id");
+						if(tu != null && ucid != null)
+						{
+							unitConversionMap.put(tu,ucid);
+						}
+					}
+				}
+			}
+		}
+	}
+	catch (e)
+	{
+		info "[WARN] Failed to preload unit_conversions: " + e;
+	}
+	info "[DEBUG] Loaded " + unitConversionMap.size() + " unit conversions from Books";
 	for each  item in purchaseItems
 	{
 		productObj = item.get("Product_Name");
@@ -195,62 +248,74 @@ try
 		{
 			lineItem.put("discount_amount",discount);
 		}
-			// Unit mapping: CRM "25PKs" -> Books unit_conversion_id
-			crmUnit = item.get("Units");
-			if(crmUnit != null && crmUnit != "")
-			{
-				unitConversionId = null;
-				if(crmUnit.equalsIgnoreCase("Eachs") || crmUnit.equalsIgnoreCase("EA") || crmUnit.equalsIgnoreCase("Each"))
+				// Unit mapping: CRM "25PKs" -> Books unit_conversion_id
+				crmUnit = item.get("Units");
+				if(crmUnit != null && crmUnit != "")
 				{
-					booksUnitFormat = "Unit";
-				}
-				else
-				{
-					booksUnitFormat = "Unit(" + crmUnit + ")";
-				}
-				try 
-				{
-					itemDetailResp = invokeurl
-					[
-						url :baseUrl + "/items/" + itemId + "?organization_id=" + orgId
-						type :GET
-						connection:"books"
-					];
-					if(itemDetailResp != null && itemDetailResp.get("code") == 0)
+					unitConversionId = null;
+					if(crmUnit.equalsIgnoreCase("Eachs") || crmUnit.equalsIgnoreCase("EA") || crmUnit.equalsIgnoreCase("Each"))
 					{
-						itemDetail = itemDetailResp.get("item");
-						unitConvs = itemDetail.get("unit_conversions");
-						info "[DEBUG] Item " + itemId + " unit_conversions: " + unitConvs.toString();
-						if(unitConvs != null)
+						booksUnitFormat = "Unit";
+					}
+					else
+					{
+						booksUnitFormat = "Unit(" + crmUnit + ")";
+					}
+					// 优先从预加载的全局 unitConversionMap 取
+					unitConversionId = unitConversionMap.get(booksUnitFormat);
+					if(unitConversionId != null)
+					{
+						lineItem.put("unit_conversion_id",unitConversionId);
+					}
+					else
+					{
+						// 缓存没命中，查 item 自身的 unit_conversions（同时缓存结果）
+						try 
 						{
-							for each  uc in unitConvs
+							itemDetailResp = invokeurl
+							[
+								url :baseUrl + "/items/" + itemId + "?organization_id=" + orgId
+								type :GET
+								connection:"books"
+							];
+							if(itemDetailResp != null && itemDetailResp.get("code") == 0)
 							{
-								tu = uc.get("target_unit");
-								if(tu != null && tu.equalsIgnoreCase(booksUnitFormat))
+								itemDetail = itemDetailResp.get("item");
+								unitConvs = itemDetail.get("unit_conversions");
+								if(unitConvs != null)
 								{
-									unitConversionId = uc.get("unit_conversion_id");
-									break;
+									for each  uc in unitConvs
+									{
+										tu = uc.get("target_unit");
+										ucid = uc.get("unit_conversion_id");
+										// 缓存到 unitConversionMap
+										if(tu != null && ucid != null)
+										{
+											unitConversionMap.put(tu,ucid);
+										}
+										if(tu != null && tu.equalsIgnoreCase(booksUnitFormat))
+										{
+											unitConversionId = ucid;
+										}
+									}
 								}
 							}
 						}
+						catch (e)
+						{
+							info "[WARN] Failed to get item unit_conversions: " + e;
+						}
+						if(unitConversionId != null)
+						{
+							lineItem.put("unit_conversion_id",unitConversionId);
+						}
+						else
+						{
+							info "[WARN] Item " + itemId + " no unit_conversion_id found for " + booksUnitFormat;
+							lineItem.put("unit",booksUnitFormat);
+						}
 					}
 				}
-				catch (e)
-				{
-					info "[WARN] Failed to get item unit_conversions: " + e;
-				}
-				if(unitConversionId != null)
-				{
-					lineItem.put("unit_conversion_id",unitConversionId);
-				info "[DEBUG] Item " + itemId + " matched unit_conversion_id=" + unitConversionId + " for " + booksUnitFormat;
-				}
-				else
-				{
-					// 找不到 unit_conversion_id 时，直接用 unit 字符串
-				info "[WARN] Item " + itemId + " no unit_conversion_id found for " + booksUnitFormat;
-					lineItem.put("unit",booksUnitFormat);
-				}
-			}
 		// Tax mapping for PO:
 		// GST_Code 固定格式: "GST:NA-AU" 或 "GST:TS-AU"
 		// GST:TS-AU → 10% GST
