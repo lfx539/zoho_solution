@@ -195,64 +195,65 @@ try
 		{
 			lineItem.put("discount_amount",discount);
 		}
-		// Unit mapping: CRM "25PKs" -> Books unit_conversion_id（和 SO 一样）
-		crmUnit = item.get("Units");
-		if(crmUnit != null && crmUnit != "")
-		{
-			unitConversionId = null;
-			defaultPurchConvId = null;
-			try 
+			// Unit mapping: CRM "25PKs" -> Books unit_conversion_id
+			// Eachs/EA/Each 是基础单位，不设 unit_conversion_id，让 Books 用默认
+			crmUnit = item.get("Units");
+			if(crmUnit != null && crmUnit != "")
 			{
-				itemDetailResp = invokeurl
-				[
-					url :baseUrl + "/items/" + itemId + "?organization_id=" + orgId
-					type :GET
-					connection:"books"
-				];
-				if(itemDetailResp != null && itemDetailResp.get("code") == 0)
+				if(crmUnit.equalsIgnoreCase("Eachs") || crmUnit.equalsIgnoreCase("EA") || crmUnit.equalsIgnoreCase("Each"))
 				{
-					itemDetail = itemDetailResp.get("item");
-					defaultPurchConvId = itemDetail.get("default_purchase_unit_conversion_id");
-					unitConvs = itemDetail.get("unit_conversions");
-					if(unitConvs != null)
+					// 基础单位，不设 unit，让 Books 用 item 默认单位
+				}
+				else
+				{
+					unitConversionId = null;
+					defaultPurchConvId = null;
+					try 
 					{
-						if(crmUnit.equalsIgnoreCase("Eachs") || crmUnit.equalsIgnoreCase("EA") || crmUnit.equalsIgnoreCase("Each"))
+						itemDetailResp = invokeurl
+						[
+							url :baseUrl + "/items/" + itemId + "?organization_id=" + orgId
+							type :GET
+							connection:"books"
+						];
+						if(itemDetailResp != null && itemDetailResp.get("code") == 0)
 						{
-							booksUnitFormat = "Unit";
-						}
-						else
-						{
-							booksUnitFormat = "Unit(" + crmUnit + ")";
-						}
-						for each  uc in unitConvs
-						{
-							tu = uc.get("target_unit");
-							if(tu != null && tu.equalsIgnoreCase(booksUnitFormat))
+							itemDetail = itemDetailResp.get("item");
+							defaultPurchConvId = itemDetail.get("default_purchase_unit_conversion_id");
+							unitConvs = itemDetail.get("unit_conversions");
+							if(unitConvs != null)
 							{
-								unitConversionId = uc.get("unit_conversion_id");
-								break;
+								booksUnitFormat = "Unit(" + crmUnit + ")";
+								for each  uc in unitConvs
+								{
+									tu = uc.get("target_unit");
+									if(tu != null && tu.equalsIgnoreCase(booksUnitFormat))
+									{
+										unitConversionId = uc.get("unit_conversion_id");
+										break;
+									}
+								}
 							}
 						}
 					}
+					catch (e)
+					{
+						info "[WARN] Failed to get item unit_conversions: " + e;
+					}
+					if(unitConversionId != null)
+					{
+						lineItem.put("unit_conversion_id",unitConversionId);
+					}
+					else if(defaultPurchConvId != null && defaultPurchConvId != "")
+					{
+						lineItem.put("unit_conversion_id",defaultPurchConvId);
+					}
+					else
+					{
+						lineItem.put("unit","Unit(" + crmUnit + ")");
+					}
 				}
 			}
-			catch (e)
-			{
-				info "[WARN] Failed to get item unit_conversions: " + e;
-			}
-			if(unitConversionId != null)
-			{
-				lineItem.put("unit_conversion_id",unitConversionId);
-			}
-			else if(defaultPurchConvId != null && defaultPurchConvId != "")
-			{
-				lineItem.put("unit_conversion_id",defaultPurchConvId);
-			}
-			else
-			{
-				lineItem.put("unit","Unit(" + crmUnit + ")");
-			}
-		}
 		// Tax mapping for PO:
 		// GST_Code 固定格式: "GST:NA-AU" 或 "GST:TS-AU"
 		// GST:TS-AU → 10% GST
