@@ -220,6 +220,7 @@ try
 					{
 						itemDetail = itemDetailResp.get("item");
 						unitConvs = itemDetail.get("unit_conversions");
+						info "[DEBUG] Item " + itemId + " unit_conversions: " + unitConvs.toString();
 						if(unitConvs != null)
 						{
 							for each  uc in unitConvs
@@ -241,10 +242,12 @@ try
 				if(unitConversionId != null)
 				{
 					lineItem.put("unit_conversion_id",unitConversionId);
+				info "[DEBUG] Item " + itemId + " matched unit_conversion_id=" + unitConversionId + " for " + booksUnitFormat;
 				}
 				else
 				{
 					// 找不到 unit_conversion_id 时，直接用 unit 字符串
+				info "[WARN] Item " + itemId + " no unit_conversion_id found for " + booksUnitFormat;
 					lineItem.put("unit",booksUnitFormat);
 				}
 			}
