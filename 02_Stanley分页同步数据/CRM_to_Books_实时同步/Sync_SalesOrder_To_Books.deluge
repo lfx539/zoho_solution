@@ -258,23 +258,38 @@ string standalone.SyncSalesOrderToBooks(String soId)
                         unitConvs = itemDetail.get("unit_conversions");
                         if(unitConvs != null)
                         {
-                            // CRM "Eachs" / "EA" 对应 Books base unit "Unit"
-                            // 其他: Books target_unit 格式 "Unit(25PKs)"，CRM 格式 "25PKs"
+                            // Eachs/EA/Each: 依次尝试匹配 Unit, PCS, EA
                             if(crmUnit.equalsIgnoreCase("Eachs") || crmUnit.equalsIgnoreCase("EA") || crmUnit.equalsIgnoreCase("Each"))
                             {
-                                booksUnitFormat = "Unit";
+                                eachFormats = {"Unit","PCS","EA"};
+                                for each ef in eachFormats
+                                {
+                                    for each uc in unitConvs
+                                    {
+                                        tu = uc.get("target_unit");
+                                        if(tu != null && tu.equalsIgnoreCase(ef))
+                                        {
+                                            unitConversionId = uc.get("unit_conversion_id");
+                                            break;
+                                        }
+                                    }
+                                    if(unitConversionId != null)
+                                    {
+                                        break;
+                                    }
+                                }
                             }
                             else
                             {
                                 booksUnitFormat = "Unit(" + crmUnit + ")";
-                            }
-                            for each uc in unitConvs
-                            {
-                                tu = uc.get("target_unit");
-                                if(tu != null && tu.equalsIgnoreCase(booksUnitFormat))
+                                for each uc in unitConvs
                                 {
-                                    unitConversionId = uc.get("unit_conversion_id");
-                                    break;
+                                    tu = uc.get("target_unit");
+                                    if(tu != null && tu.equalsIgnoreCase(booksUnitFormat))
+                                    {
+                                        unitConversionId = uc.get("unit_conversion_id");
+                                        break;
+                                    }
                                 }
                             }
                         }
