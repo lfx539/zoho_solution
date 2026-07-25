@@ -236,63 +236,56 @@ string standalone.SyncSalesOrderToBooks(String soId)
             }
 
             // Unit mapping: CRM "25PKs" -> Books unit_conversion_id
-            // Eachs/EA/Each 是基础单位，不设 unit_conversion_id，让 Books 用默认
             crmUnit = item.get("Units");
             if(crmUnit != null && crmUnit != "")
             {
+                unitConversionId = null;
                 if(crmUnit.equalsIgnoreCase("Eachs") || crmUnit.equalsIgnoreCase("EA") || crmUnit.equalsIgnoreCase("Each"))
                 {
-                    // 基础单位，不设 unit，让 Books 用 item 默认单位
+                    booksUnitFormat = "Unit";
                 }
                 else
                 {
-                    unitConversionId = null;
-                    defaultSalesConvId = null;
-                    try
+                    booksUnitFormat = "Unit(" + crmUnit + ")";
+                }
+                try
+                {
+                    itemDetailResp = invokeurl
+                    [
+                        url: baseUrl + "/items/" + itemId + "?organization_id=" + orgId
+                        type: GET
+                        connection: "books"
+                    ];
+                    if(itemDetailResp != null && itemDetailResp.get("code") == 0)
                     {
-                        itemDetailResp = invokeurl
-                        [
-                            url: baseUrl + "/items/" + itemId + "?organization_id=" + orgId
-                            type: GET
-                            connection: "books"
-                        ];
-                        if(itemDetailResp != null && itemDetailResp.get("code") == 0)
+                        itemDetail = itemDetailResp.get("item");
+                        unitConvs = itemDetail.get("unit_conversions");
+                        if(unitConvs != null)
                         {
-                            itemDetail = itemDetailResp.get("item");
-                            defaultSalesConvId = itemDetail.get("default_sales_unit_conversion_id");
-                            unitConvs = itemDetail.get("unit_conversions");
-                            if(unitConvs != null)
+                            for each uc in unitConvs
                             {
-                                booksUnitFormat = "Unit(" + crmUnit + ")";
-                                for each uc in unitConvs
+                                tu = uc.get("target_unit");
+                                if(tu != null && tu.equalsIgnoreCase(booksUnitFormat))
                                 {
-                                    tu = uc.get("target_unit");
-                                    if(tu != null && tu.equalsIgnoreCase(booksUnitFormat))
-                                    {
-                                        unitConversionId = uc.get("unit_conversion_id");
-                                        break;
-                                    }
+                                    unitConversionId = uc.get("unit_conversion_id");
+                                    break;
                                 }
                             }
                         }
                     }
-                    catch(e)
-                    {
-                        info "[WARN] Failed to get item unit_conversions: " + e;
-                    }
-
-                    if(unitConversionId != null)
-                    {
-                        lineItem.put("unit_conversion_id", unitConversionId);
-                    }
-                    else if(defaultSalesConvId != null && defaultSalesConvId != "")
-                    {
-                        lineItem.put("unit_conversion_id", defaultSalesConvId);
-                    }
-                    else
-                    {
-                        lineItem.put("unit", "Unit(" + crmUnit + ")");
-                    }
+                }
+                catch(e)
+                {
+                    info "[WARN] Failed to get item unit_conversions: " + e;
+                }
+                if(unitConversionId != null)
+                {
+                    lineItem.put("unit_conversion_id", unitConversionId);
+                }
+                else
+                {
+                    // 找不到 unit_conversion_id 时，直接用 unit 字符串
+                    lineItem.put("unit", booksUnitFormat);
                 }
             }
 
