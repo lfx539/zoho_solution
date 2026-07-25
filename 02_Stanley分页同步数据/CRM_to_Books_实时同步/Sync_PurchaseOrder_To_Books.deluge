@@ -216,38 +216,21 @@ try
 					unitConvs = itemDetail.get("unit_conversions");
 					if(unitConvs != null)
 					{
-						// Eachs/EA/Each: 依次尝试匹配 Unit, PCS, EA
 						if(crmUnit.equalsIgnoreCase("Eachs") || crmUnit.equalsIgnoreCase("EA") || crmUnit.equalsIgnoreCase("Each"))
 						{
-							eachFormats = {"Unit","PCS","EA"};
-							for each  ef in eachFormats
-							{
-								for each  uc in unitConvs
-								{
-									tu = uc.get("target_unit");
-									if(tu != null && tu.equalsIgnoreCase(ef))
-									{
-										unitConversionId = uc.get("unit_conversion_id");
-										break;
-									}
-								}
-								if(unitConversionId != null)
-								{
-									break;
-								}
-							}
+							booksUnitFormat = "Unit";
 						}
 						else
 						{
 							booksUnitFormat = "Unit(" + crmUnit + ")";
-							for each  uc in unitConvs
+						}
+						for each  uc in unitConvs
+						{
+							tu = uc.get("target_unit");
+							if(tu != null && tu.equalsIgnoreCase(booksUnitFormat))
 							{
-								tu = uc.get("target_unit");
-								if(tu != null && tu.equalsIgnoreCase(booksUnitFormat))
-								{
-									unitConversionId = uc.get("unit_conversion_id");
-									break;
-								}
+								unitConversionId = uc.get("unit_conversion_id");
+								break;
 							}
 						}
 					}
