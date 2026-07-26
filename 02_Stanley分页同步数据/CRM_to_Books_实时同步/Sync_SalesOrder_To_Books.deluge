@@ -328,7 +328,18 @@ string standalone.SyncSalesOrderToBooks(String soId)
         soData.put("customer_id", customerId);
         soData.put("date", so.get("Created_Time").substring(0, 10));
         soData.put("reference_number", soNumber);
-        soData.put("salesperson_name", "SEAN REN");
+        // Salesperson: 从 CRM Owner 读取，fallback 到 SEAN REN
+        salespersonName = "SEAN REN";
+        ownerObj = so.get("Owner");
+        if(ownerObj != null)
+        {
+            ownerName = ownerObj.get("name");
+            if(ownerName != null && ownerName != "")
+            {
+                salespersonName = ownerName;
+            }
+        }
+        soData.put("salesperson_name", salespersonName);
         soData.put("line_items", lineItems);
 
         // NetSuite ID >> Books 自定义字段
@@ -368,8 +379,14 @@ string standalone.SyncSalesOrderToBooks(String soId)
         disc = so.get("Discount");
         if(disc != null && disc != "")
         {
+            // CRM Discount 是负数（如 -28.73），转成正数给 Books
+            discVal = disc;
+            if(discVal < 0)
+            {
+                discVal = 0 - discVal;
+            }
             // 用 discount 而非 adjustment，使 discount 在 GST 计算之前扣除
-            soData.put("discount", disc);
+            soData.put("discount", discVal);
             soData.put("is_discount_before_tax", true);
         }
 
