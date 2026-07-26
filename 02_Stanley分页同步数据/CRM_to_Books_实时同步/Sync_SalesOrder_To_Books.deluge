@@ -368,7 +368,9 @@ string standalone.SyncSalesOrderToBooks(String soId)
         disc = so.get("Discount");
         if(disc != null && disc != "")
         {
-            soData.put("adjustment", disc);
+            // 用 discount 而非 adjustment，使 discount 在 GST 计算之前扣除
+            soData.put("discount", disc);
+            soData.put("is_discount_before_tax", true);
         }
 
         // Shipping Address
