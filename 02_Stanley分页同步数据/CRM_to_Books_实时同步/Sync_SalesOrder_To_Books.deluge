@@ -377,7 +377,8 @@ string standalone.SyncSalesOrderToBooks(String soId)
             }
         }
         disc = so.get("Discount");
-        if(disc != null && disc != "")
+        info "[DEBUG] SO Discount field value: " + disc;
+        if(disc != null && disc != "" && disc != 0)
         {
             // CRM Discount 是负数（如 -28.73），转成正数给 Books
             discVal = disc;
@@ -385,9 +386,15 @@ string standalone.SyncSalesOrderToBooks(String soId)
             {
                 discVal = 0 - discVal;
             }
+            info "[DEBUG] Applying discount: " + discVal + " (before tax)";
             // 用 discount 而非 adjustment，使 discount 在 GST 计算之前扣除
             soData.put("discount", discVal);
+            soData.put("discount_type", "entity_level");
             soData.put("is_discount_before_tax", true);
+        }
+        else
+        {
+            info "[DEBUG] No discount to apply";
         }
 
         // Shipping Address
