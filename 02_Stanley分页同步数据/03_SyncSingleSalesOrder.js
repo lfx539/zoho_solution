@@ -130,7 +130,7 @@ if(soItems != null)
 					itemRate = item.get("rate");
 					if(itemRate != null)
 					{
-						itemRate = round(itemRate,2);
+						itemRate = itemRate;
 					}
 					else
 					{
@@ -145,7 +145,7 @@ if(soItems != null)
 						itemAmount = item.get("amount");
 						if(itemAmount != null)
 						{
-							prodListParams.put("Total",round(itemAmount,2));
+							prodListParams.put("STotal",round(itemAmount,2));
 						}
 					}
 					prodListParams.put("On_hand",item.get("quantityOnHand"));

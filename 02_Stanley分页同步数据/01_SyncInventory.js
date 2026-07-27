@@ -8,42 +8,40 @@ startOffset = 0;
 // 起始offset（断点续传）：如果上次处理了100条，这里设置为100，从第101条开始处理。首次运行设置为0
 maxProcessCount = 200;
 // 单次最大处理数量，避免超时
-
 // ============================================================
 // 从 PLogs 读取上次的 startOffset（断点续传）
 // ============================================================
 statusNoteId = null;
-try
+try 
 {
-    statusNotes = zoho.crm.searchRecords("PLogs","(Name:equals:ProductSyncStatus)");
-    if(statusNotes != null && statusNotes.size() > 0)
-    {
-        statusNote = statusNotes.get(0);
-        statusNoteId = statusNote.get("id");
-        noteContent = statusNote.get("Log_Content");
-        if(noteContent != null && noteContent != "")
-        {
-            statusMap = noteContent.toMap();
-            if(statusMap != null)
-            {
-                nextOffsetVal = statusMap.get("nextOffset");
-                if(nextOffsetVal != null && nextOffsetVal != "")
-                {
-                    startOffset = nextOffsetVal.toNumber();
-                    if(startOffset < 0)
-                    {
-                        startOffset = 0;
-                    }
-                }
-            }
-        }
-    }
+	statusNotes = zoho.crm.searchRecords("PLogs","(Name:equals:ProductSyncStatus)");
+	if(statusNotes != null && statusNotes.size() > 0)
+	{
+		statusNote = statusNotes.get(0);
+		statusNoteId = statusNote.get("id");
+		noteContent = statusNote.get("Log_Content");
+		if(noteContent != null && noteContent != "")
+		{
+			statusMap = noteContent.toMap();
+			if(statusMap != null)
+			{
+				nextOffsetVal = statusMap.get("nextOffset");
+				if(nextOffsetVal != null && nextOffsetVal != "")
+				{
+					startOffset = nextOffsetVal.toNumber();
+					if(startOffset < 0)
+					{
+						startOffset = 0;
+					}
+				}
+			}
+		}
+	}
 }
-catch(e)
+catch (e)
 {
-    info "读取上次处理位置失败: " + e;
+	info "读取上次处理位置失败: " + e;
 }
-
 // 记录400错误的产品ID
 error400Ids = List();
 // 计算正确的API offset（必须是limit的倍数）
@@ -247,99 +245,92 @@ if(error400Ids != null && error400Ids.size() > 0)
 {
 	info "400错误产品ID列表（共 " + error400Ids.size() + " 条）:" + error400Ids;
 }
-
 // ============================================================
 // 1. 保存错误日志到 Logs（如果有错误）- 独立记录，不会被覆盖
 // ============================================================
 if(error400Ids != null && error400Ids.size() > 0)
 {
-	try
+	try 
 	{
 		// 创建错误记录
 		errorLogParams = Map();
-		errorLogParams.put("Name", "ProductSync_400Errors_" + startOffset + "_" + actualProcessed);
-		errorLogParams.put("Error_Ids", error400Ids.toString());
-		errorLogParams.put("Log_Content", "批次: " + startOffset + " - " + actualProcessed + ", 成功: " + totalSuccess + " 条, 失败: " + totalFailed + " 条, 错误数量: " + error400Ids.size() + ", 同步时间: " + zoho.currenttime.toString());
-
+		errorLogParams.put("Name","ProductSync_400Errors_" + startOffset + "_" + actualProcessed);
+		errorLogParams.put("Error_Ids",error400Ids.toString());
+		errorLogParams.put("Log_Content","批次: " + startOffset + " - " + actualProcessed + ", 成功: " + totalSuccess + " 条, 失败: " + totalFailed + " 条, 错误数量: " + error400Ids.size() + ", 同步时间: " + zoho.currenttime.toString());
 		errorLogList = List();
 		errorLogList.add(errorLogParams);
 		errorLogRequest = Map();
-		errorLogRequest.put("data", errorLogList);
-
+		errorLogRequest.put("data",errorLogList);
 		invokeurl
 		[
-			url : "https://www.zohoapis.com.au/crm/v8/PLogs"
-			type : POST
-			parameters : errorLogRequest.toString()
-			connection : "crm"
-		];
-
+			url :"https://www.zohoapis.com.au/crm/v8/PLogs"
+			type :POST
+			parameters:errorLogRequest.toString()
+			connection:"crm"
+		]
 		info "错误ID已保存到 PLogs";
 	}
-	catch(e)
+	catch (e)
 	{
 		info "保存错误日志失败: " + e;
 	}
 }
-
 // ============================================================
 // 2. 保存进度到 PLogs（断点续传）- 不包含errorIds，避免覆盖
 // ============================================================
-try
+try 
 {
 	statusData = Map();
-	if(hasMore == true)
+	if(hasMore == true || totalProcessed >= maxProcessCount)
 	{
-		statusData.put("nextOffset", actualProcessed);
+		// hasMore=true：还有更多页，保存进度
+		// hasMore=false但达到了maxProcessCount：最后一页还有未处理的记录，也要保存进度
+		statusData.put("nextOffset",actualProcessed);
 	}
 	else
 	{
-		statusData.put("nextOffset", 0);
+		// hasMore=false 且未达到maxProcessCount：最后一页的所有记录都已处理完，重置
+		statusData.put("nextOffset",0);
 	}
-	statusData.put("lastSyncTime", zoho.currenttime.toString());
-	statusData.put("totalProcessed", actualProcessed);
-	statusData.put("totalSuccess", totalSuccess);
-	statusData.put("totalFailed", totalFailed);
-	statusData.put("hasMore", hasMore);
+	statusData.put("lastSyncTime",zoho.currenttime.toString());
+	statusData.put("totalProcessed",actualProcessed);
+	statusData.put("totalSuccess",totalSuccess);
+	statusData.put("totalFailed",totalFailed);
+	statusData.put("hasMore",hasMore);
 	// 注意：不再保存 error400Ids，错误ID已单独保存到 Logs
-
 	statusNoteParams = Map();
-	statusNoteParams.put("Name", "ProductSyncStatus");
-	statusNoteParams.put("Log_Content", statusData.toString());
-
+	statusNoteParams.put("Name","ProductSyncStatus");
+	statusNoteParams.put("Log_Content",statusData.toString());
 	statusDataList = List();
 	statusDataList.add(statusNoteParams);
 	statusRequestParams = Map();
-	statusRequestParams.put("data", statusDataList);
-
+	statusRequestParams.put("data",statusDataList);
 	if(statusNoteId != null && statusNoteId != "")
 	{
 		invokeurl
 		[
-			url: "https://www.zohoapis.com.au/crm/v8/PLogs/" + statusNoteId
-			type: PUT
-			parameters: statusRequestParams.toString()
-			connection: "crm"
-		];
+			url :"https://www.zohoapis.com.au/crm/v8/PLogs/" + statusNoteId
+			type :PUT
+			parameters:statusRequestParams.toString()
+			connection:"crm"
+		]
 	}
 	else
 	{
 		invokeurl
 		[
-			url: "https://www.zohoapis.com.au/crm/v8/PLogs"
-			type: POST
-			parameters: statusRequestParams.toString()
-			connection: "crm"
-		];
+			url :"https://www.zohoapis.com.au/crm/v8/PLogs"
+			type :POST
+			parameters:statusRequestParams.toString()
+			connection:"crm"
+		]
 	}
-
 	info "进度已保存到 PLogs";
 }
-catch(e)
+catch (e)
 {
 	info "保存进度失败: " + e;
 }
-
 // 断点续传提示
 if(hasMore == true)
 {
