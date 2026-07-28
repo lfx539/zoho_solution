@@ -64,9 +64,39 @@ else
 {
 	cashSaleParams.put("Memo",cashSaleMemo);
 }
-cashSaleParams.put("Date",cashSaleDetail.get("dueDate"));
+tranDate = cashSaleDetail.get("tranDate");
+if(tranDate != null && tranDate.length() > 10)
+{
+    tranDate = tranDate.substring(0,10);
+}
+cashSaleParams.put("Tran_Date",tranDate);
+shipDate = cashSaleDetail.get("shipDate");
+if(shipDate != null && shipDate.length() > 10)
+{
+    shipDate = shipDate.substring(0,10);
+}
+cashSaleParams.put("Ship_Date",shipDate);
+createdDate = cashSaleDetail.get("createdDate");
+if(createdDate != null && createdDate.length() > 10)
+{
+    createdDate = createdDate.substring(0,10);
+}
+cashSaleParams.put("Date",createdDate);
 cashSaleParams.put("Shipping_Cost",cashSaleDetail.get("shippingCost"));
 cashSaleParams.put("Discount",cashSaleDetail.get("discountTotal"));
+// 处理Status
+csStatus = cashSaleDetail.get("status");
+if(csStatus != null)
+{
+    if(csStatus.toString().contains("refName"))
+    {
+        cashSaleParams.put("Status",csStatus.get("refName"));
+    }
+    else
+    {
+        cashSaleParams.put("Status",csStatus.toString());
+    }
+}
 // 获取Discount Item
 discountItem = cashSaleDetail.get("discountItem");
 if(discountItem != null)
@@ -79,6 +109,28 @@ if(discountItem != null)
 	{
 		cashSaleParams.put("Discount_Item",discountItem.toString());
 	}
+}
+// 处理Owner (salesRep)
+csOwner = cashSaleDetail.get("salesRep");
+if(csOwner != null)
+{
+	csOwnerName = csOwner.get("refName");
+	csOwnerID = standalone.mapSalesRep(csOwnerName);
+	info "SalesRep: " + csOwnerName + " -> OwnerID: " + csOwnerID;
+	if(csOwnerID != null && csOwnerID != "")
+	{
+		cashSaleParams.put("Owner",csOwnerID);
+	}
+	else
+	{
+		// 未匹配到用户，默认设为Sean Ren
+		cashSaleParams.put("Owner","102317000000370001");
+	}
+}
+else
+{
+	// 没有salesRep时，默认设为Sean Ren
+	cashSaleParams.put("Owner","102317000000370001");
 }
 // 获取Account信息
 entity = cashSaleDetail.get("entity");
@@ -110,6 +162,7 @@ if(createdFrom != null)
 }
 // 3. 构建子表数据
 prodList = List();
+subSTotal = 0;
 invItems = cashSaleDetail.get("item");
 if(invItems != null)
 {
@@ -139,6 +192,17 @@ if(invItems != null)
 					}
 					prodListParams.put("Rate",itemRate);
 					prodListParams.put("Quantity",item.get("quantity"));
+					// 检查是否为 surcharge 产品，同步 amount 到 Total
+					itemName = itemObj.get("refName");
+					if(itemName != null && itemName.toLowerCase().contains("surcharge"))
+					{
+						itemAmount = item.get("amount");
+						if(itemAmount != null)
+						{
+							prodListParams.put("STotal",round(itemAmount,2));
+						subSTotal = subSTotal + itemAmount;
+						}
+					}
 					prodListParams.put("Item_Description",item.get("description"));
 					// 处理Price Level
 					price = item.get("price");
@@ -161,6 +225,11 @@ if(invItems != null)
 		}
 	}
 }
+	// 写入 Sub STotal（surcharge 合计）
+	if(subSTotal > 0)
+	{
+		cashSaleParams.put("Sub_STotal",round(subSTotal,2));
+	}
 // 4. 检查Cash Sale是否存在并执行创建/更新
 existingCashSales = zoho.crm.searchRecords("Cash_Sale","(Subject:equals:" + netsuiteId + ")");
 if(existingCashSales != null && existingCashSales.size() > 0)

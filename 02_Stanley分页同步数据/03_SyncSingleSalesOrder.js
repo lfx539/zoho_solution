@@ -65,9 +65,39 @@ else
 {
 	soParams.put("Memo",soMemo);
 }
-soParams.put("Date",soDetail.get("tranDate"));
+tranDate = soDetail.get("tranDate");
+if(tranDate != null && tranDate.length() > 10)
+{
+    tranDate = tranDate.substring(0,10);
+}
+soParams.put("Tran_Date",tranDate);
+shipDate = soDetail.get("shipDate");
+if(shipDate != null && shipDate.length() > 10)
+{
+    shipDate = shipDate.substring(0,10);
+}
+soParams.put("Ship_Date",shipDate);
+createdDate = soDetail.get("createdDate");
+if(createdDate != null && createdDate.length() > 10)
+{
+    createdDate = createdDate.substring(0,10);
+}
+soParams.put("Date",createdDate);
 soParams.put("Shipping_Cost",soDetail.get("shippingCost"));
 soParams.put("Discount",soDetail.get("discountTotal"));
+// 处理Status
+soStatus = soDetail.get("status");
+if(soStatus != null)
+{
+    if(soStatus.toString().contains("refName"))
+    {
+        soParams.put("Status",soStatus.get("refName"));
+    }
+    else
+    {
+        soParams.put("Status",soStatus.toString());
+    }
+}
 // 获取Account信息
 entity = soDetail.get("entity");
 if(entity != null)
@@ -98,8 +128,16 @@ if(soOwner != null)
 {
 	soOwnerName = soOwner.get("refName");
 	soOwnerID = standalone.mapSalesRep(soOwnerName);
-	info soOwnerID;
-	soParams.put("Owner",soOwnerID);
+	info "SalesRep: " + soOwnerName + " -> OwnerID: " + soOwnerID;
+	if(soOwnerID != null && soOwnerID != "")
+	{
+		soParams.put("Owner",soOwnerID);
+	}
+	else
+	{
+		// 未匹配到用户，默认设为Sean Ren
+		soParams.put("Owner","102317000000370001");
+	}
 }
 else
 {
