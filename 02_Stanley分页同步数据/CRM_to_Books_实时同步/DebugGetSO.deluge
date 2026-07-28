@@ -1,0 +1,23 @@
+// 调试：打印 SO77815 第一个 line item 的完整字段
+string standalone.DebugGetSO()
+{
+    config = standalone.GetBooksConfig().toMap();
+    baseUrl = config.get("baseUrl");
+    orgId = config.get("organizationId");
+
+    resp = invokeurl
+    [
+        url: baseUrl + "/salesorders/259067000002384434?organization_id=" + orgId
+        type: GET
+        connection: "books"
+    ];
+
+    soDetail = resp.get("salesorder");
+    info "status: " + soDetail.get("status");
+
+    firstItem = soDetail.get("line_items").get(0);
+    info "=== FULL FIRST LINE ITEM ===";
+    info firstItem.toString();
+
+    return "done";
+}

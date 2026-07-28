@@ -1,0 +1,279 @@
+// ============================================================================
+// Sync Invoice 到 Books（从 CRM SO 创建 Books Invoice 并标记 sent）
+// 逻辑：
+// 1. 查找 Books 中是否已有同 reference_number 的 Invoice
+// 2. 没找到 → 从 Books SO 获取 line_item_id → 用 fromsalesorder 创建 → 标记 sent
+// 3. 找到了 → 跳过（幂等）
+// 前置依赖：
+// 1. SO 已同步到 Books（需要 booksSoId）
+// 2. Account 已同步到 Books（需要 customerId）
+// ============================================================================
+
+string standalone.SyncInvoiceToBooks(String soId, String booksSoId, String customerId)
+{
+    result = Map();
+
+    try
+    {
+        // 1. 获取 CRM SO 信息
+        so = zoho.crm.getRecordById("Sales_Orders", soId);
+        if(so == null)
+        {
+            result.put("error", "Sales Order not found");
+            return result.toString();
+        }
+
+        soNumber = so.get("Order_Number");
+        if(soNumber == null)
+        {
+            soNumber = so.get("Subject");
+        }
+        info "Sync Invoice for SO: " + soNumber;
+
+        // 2. 获取 Books 配置
+        config = standalone.GetBooksConfig().toMap();
+        baseUrl = config.get("baseUrl");
+        orgId = config.get("organizationId");
+
+        // 3. 从 Books SO 获取详情（同时用于去重检查和构建 line items）
+        soDetailResp = invokeurl
+        [
+            url: baseUrl + "/salesorders/" + booksSoId + "?organization_id=" + orgId
+            type: GET
+            connection: "books"
+        ];
+
+        if(soDetailResp == null || soDetailResp.get("code") != 0)
+        {
+            errorMsg = "Failed to fetch Books SO detail";
+            if(soDetailResp != null)
+            {
+                errorMsg = soDetailResp.get("message");
+            }
+            result.put("error", errorMsg);
+            result.put("status", "failed");
+            return result.toString();
+        }
+
+        soDetail = soDetailResp.get("salesorder");
+
+        // 3.5 确认 SO（Package 和 Invoice 需要 SO 处于 confirmed 状态）
+        soStatus = soDetail.get("status");
+        if(soStatus == null || !soStatus.equalsIgnoreCase("confirmed"))
+        {
+            info "[INV] Confirming SO status...";
+            confirmResp = invokeurl
+            [
+                url: baseUrl + "/salesorders/" + booksSoId + "/status/confirmed?organization_id=" + orgId
+                type: POST
+                connection: "books"
+            ];
+            if(confirmResp != null && confirmResp.get("code") == 0)
+            {
+                info "[OK] SO confirmed";
+            }
+            else
+            {
+                confirmErrMsg = "No response";
+                if(confirmResp != null)
+                {
+                    confirmErrMsg = confirmResp.get("message");
+                }
+                info "[WARN] SO confirm failed: " + confirmErrMsg;
+            }
+        }
+
+        // 检查是否已有关联此 SO 的 Invoice
+        existingInvoiceId = null;
+        soInvoices = soDetail.get("invoices");
+        if(soInvoices != null && soInvoices.size() > 0)
+        {
+            existingInvoiceId = soInvoices.get(0).get("invoice_id");
+            info "[SKIP] Invoice already linked to SO: " + existingInvoiceId;
+        }
+
+        if(existingInvoiceId != null)
+        {
+            result.put("invoiceId", existingInvoiceId);
+            result.put("status", "skipped");
+            result.put("action", "exists");
+            return result.toString();
+        }
+
+        // 4. 从 SO 详情中获取 line items
+        soLineItems = soDetail.get("line_items");
+
+        if(soLineItems == null || soLineItems.size() == 0)
+        {
+            result.put("error", "No line items in Books SO");
+            result.put("status", "failed");
+            return result.toString();
+        }
+
+        // 构建 Invoice line items，用 so_line_item_id 关联
+        invoiceLineItems = List();
+        for each soLine in soLineItems
+        {
+            lineItemId = soLine.get("line_item_id");
+            if(lineItemId == null)
+            {
+                continue;
+            }
+
+            invLine = Map();
+            invLine.put("so_line_item_id", lineItemId);
+            invLine.put("quantity", soLine.get("quantity"));
+
+            invoiceLineItems.add(invLine);
+        }
+
+        if(invoiceLineItems.size() == 0)
+        {
+            result.put("error", "No valid line items for Invoice");
+            result.put("status", "failed");
+            return result.toString();
+        }
+
+        // 5. 构建 Invoice 数据
+        invoiceData = Map();
+        invoiceData.put("customer_id", customerId);
+        invoiceData.put("date", so.get("Created_Time").substring(0, 10));
+        invoiceData.put("reference_number", soNumber);
+        invoiceData.put("line_items", invoiceLineItems);
+
+        // Salesperson
+        salespersonName = "SEAN REN";
+        ownerObj = so.get("Owner");
+        if(ownerObj != null)
+        {
+            ownerName = ownerObj.get("name");
+            if(ownerName != null && ownerName != "")
+            {
+                salespersonName = ownerName;
+            }
+        }
+        invoiceData.put("salesperson_name", salespersonName);
+
+        // NetSuite ID >> custom field
+        netsuiteId = so.get("Subject");
+        if(netsuiteId != null && netsuiteId != "")
+        {
+            customFieldList = List();
+            customFieldMap = Map();
+            customFieldMap.put("api_name", "cf_netsuite_id");
+            customFieldMap.put("value", netsuiteId);
+            customFieldList.add(customFieldMap);
+            invoiceData.put("custom_fields", customFieldList);
+        }
+
+        // Memo
+        memo = so.get("Memo");
+        if(memo != null && memo != "")
+        {
+            invoiceData.put("notes", memo);
+        }
+
+        // Terms
+        terms = so.get("Terms_and_Conditions");
+        if(terms != null && terms != "")
+        {
+            invoiceData.put("terms", terms);
+        }
+
+        // Shipping charge + tax
+        shipCost = so.get("Shipping_Cost");
+        if(shipCost != null && shipCost != "")
+        {
+            invoiceData.put("shipping_charge", shipCost);
+        }
+
+        // Discount
+        disc = so.get("Discount");
+        if(disc != null && disc != "" && disc != 0)
+        {
+            discVal = disc;
+            if(discVal < 0)
+            {
+                discVal = 0 - discVal;
+            }
+            invoiceData.put("discount", discVal);
+            invoiceData.put("discount_type", "entity_level");
+            invoiceData.put("is_discount_before_tax", true);
+        }
+
+        // 6. 用 fromsalesorder 端点创建 Invoice（salesorder_id 在 query string）
+        createResp = invokeurl
+        [
+            url: baseUrl + "/invoices/fromsalesorder?salesorder_id=" + booksSoId + "&organization_id=" + orgId
+            type: POST
+            parameters: invoiceData.toString()
+            connection: "books"
+        ];
+
+        if(createResp == null || createResp.get("code") != 0)
+        {
+            errorMsg = "No response";
+            if(createResp != null)
+            {
+                errorMsg = createResp.get("message");
+            }
+            info "[ERR] Invoice create failed: " + errorMsg;
+            result.put("error", errorMsg);
+            result.put("status", "failed");
+            automation.SaveBooksSyncLog("Invoice", soId, "", "Failed", errorMsg);
+            return result.toString();
+        }
+
+        invoiceObj = createResp.get("invoice");
+        if(invoiceObj == null)
+        {
+            invoiceId = createResp.get("invoice_id");
+        }
+        else
+        {
+            invoiceId = invoiceObj.get("invoice_id");
+        }
+        info "[OK] Invoice created from SO: " + invoiceId;
+
+        // 7. 标记 Invoice 为 sent
+        sentResp = invokeurl
+        [
+            url: baseUrl + "/invoices/" + invoiceId + "/status/sent?organization_id=" + orgId
+            type: POST
+            connection: "books"
+        ];
+
+        if(sentResp != null && sentResp.get("code") == 0)
+        {
+            info "[OK] Invoice marked as sent";
+        }
+        else
+        {
+            sentErrMsg = "No response";
+            if(sentResp != null)
+            {
+                sentErrMsg = sentResp.get("message");
+            }
+            info "[WARN] Invoice mark sent failed: " + sentErrMsg;
+        }
+
+        // 8. 返回结果
+        result.put("invoiceId", invoiceId);
+        result.put("status", "success");
+        result.put("action", "created");
+
+        automation.SaveBooksSyncLog("Invoice", soId, invoiceId, "Success", "Invoice created from SO and marked sent");
+
+        return result.toString();
+    }
+    catch (e)
+    {
+        errorMsg = "Exception: " + e.toString();
+        info "[ERR] Invoice sync exception: " + errorMsg;
+        result.put("error", errorMsg);
+        result.put("status", "failed");
+        automation.SaveBooksSyncLog("Invoice", soId, "", "Failed", errorMsg);
+    }
+
+    return result.toString();
+}

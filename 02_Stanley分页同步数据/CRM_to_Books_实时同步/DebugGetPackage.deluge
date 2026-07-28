@@ -1,0 +1,55 @@
+// 临时调试函数：读取 Books Package 详情
+string standalone.DebugGetPackage()
+{
+    config = standalone.GetBooksConfig().toMap();
+    baseUrl = config.get("baseUrl");
+    orgId = config.get("organizationId");
+
+    // 读取 SO97715 关联的 Package
+    resp = invokeurl
+    [
+        url: baseUrl + "/packages/259067000002384609?organization_id=" + orgId
+        type: GET
+        connection: "books"
+    ];
+
+    if(resp.get("code") == 0)
+    {
+        pkg = resp.get("package");
+        info "package_id: " + pkg.get("package_id");
+        info "package_number: " + pkg.get("package_number");
+        info "status: " + pkg.get("status");
+        info "salesorder_id: " + pkg.get("salesorder_id");
+        info "salesorder_number: " + pkg.get("salesorder_number");
+        info "customer_id: " + pkg.get("customer_id");
+        info "date: " + pkg.get("date");
+        info "reference_number: " + pkg.get("reference_number");
+        info "carrier: " + pkg.get("carrier");
+        info "delivery_method: " + pkg.get("delivery_method");
+        info "shipment_id: " + pkg.get("shipment_id");
+
+        shipmentOrder = pkg.get("shipment_order");
+        if(shipmentOrder != null)
+        {
+            info "shipment_order status: " + shipmentOrder.get("status");
+            info "shipment_order shipment_number: " + shipmentOrder.get("shipment_number");
+        }
+
+        // line items
+        lineItems = pkg.get("line_items");
+        if(lineItems != null)
+        {
+            info "line_items count: " + lineItems.size();
+            for each li in lineItems
+            {
+                info "  - name: " + li.get("name") + " qty: " + li.get("quantity") + " warehouse_id: " + li.get("warehouse_id");
+            }
+        }
+    }
+    else
+    {
+        info "Error: " + resp.get("message");
+    }
+
+    return "done";
+}

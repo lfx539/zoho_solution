@@ -1,0 +1,311 @@
+{
+    "links": [
+        {
+            "rel": "self",
+            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/check/1026519?expandSubResources=true",
+            "method": "GET"
+        }
+    ],
+    "account": {
+        "links": [
+            {
+                "rel": "self",
+                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/account/271",
+                "method": "GET"
+            }
+        ],
+        "id": "271",
+        "refName": "11200 Cash at Bank - CBA"
+    },
+    "balance": -23253.02,
+    "cleared": true,
+    "clearedDate": "2023-11-24",
+    "createdDate": "2023-11-17T21:11:00Z",
+    "currency": {
+        "links": [
+            {
+                "rel": "self",
+                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/currency/1",
+                "method": "GET"
+            }
+        ],
+        "id": "1",
+        "refName": "Australian Dollar"
+    },
+    "custbody_anz_4disputed_invoice": false,
+    "custbody_anz_7supply_chain": false,
+    "custbody_anz_credit_card_pymt": false,
+    "custbody_anz_disputed_trans": false,
+    "custbody_anz_exclude_from_tcp": false,
+    "custbody_anz_grant_payment_type": false,
+    "custbody_anz_include_in_tpar": false,
+    "custbody_anz_peppol_einv_enabled": false,
+    "custbody_anz_rcti": false,
+    "custbody_anz_txn_tpar_eligible": false,
+    "custbody_atlas_no_hdn": {
+        "links": [
+            {
+                "rel": "self",
+                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/customlist_atlas_appr_by_creator/2",
+                "method": "GET"
+            }
+        ],
+        "id": "2",
+        "refName": "No"
+    },
+    "custbody_atlas_yes_hdn": {
+        "links": [
+            {
+                "rel": "self",
+                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/customlist_atlas_appr_by_creator/1",
+                "method": "GET"
+            }
+        ],
+        "id": "1",
+        "refName": "Yes"
+    },
+    "custbody_cash_register": false,
+    "custbody_icsjg_child_jnrls": {
+        "links": [
+            {
+                "rel": "self",
+                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/check/1026519/custbody_icsjg_child_jnrls",
+                "method": "GET"
+            }
+        ],
+        "count": 0,
+        "hasMore": false,
+        "items": [],
+        "offset": 0,
+        "totalResults": 0
+    },
+    "custbody_nondeductible_processed": false,
+    "custbody_nondeductible_ref_tran": {
+        "links": [
+            {
+                "rel": "self",
+                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/check/1026519/custbody_nondeductible_ref_tran",
+                "method": "GET"
+            }
+        ],
+        "count": 0,
+        "hasMore": false,
+        "items": [],
+        "offset": 0,
+        "totalResults": 0
+    },
+    "custbody_pr_off_payroll": false,
+    "custbody_report_timestamp": "17/11/2023 13:11:35",
+    "custbody_sii_article_72_73": false,
+    "custbody_sii_not_reported_in_time": false,
+    "entity": {
+        "links": [
+            {
+                "rel": "self",
+                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/vendor/68962",
+                "method": "GET"
+            }
+        ],
+        "id": "68962",
+        "refName": "Interparcel Pty Ltd"
+    },
+    "exchangeRate": 1.0,
+    "excludeFromGLNumbering": false,
+    "expense": {
+        "links": [
+            {
+                "rel": "self",
+                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/check/1026519/expense",
+                "method": "GET"
+            }
+        ],
+        "items": [
+            {
+                "links": [
+                    {
+                        "rel": "self",
+                        "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/check/1026519/expense/1",
+                        "method": "GET"
+                    }
+                ],
+                "account": {
+                    "links": [
+                        {
+                            "rel": "self",
+                            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/account/226",
+                            "method": "GET"
+                        }
+                    ],
+                    "id": "226",
+                    "refName": "54000 Delivery Expense"
+                },
+                "amount": 921.32,
+                "grossAmt": 1013.45,
+                "isBillable": false,
+                "line": 1,
+                "location": {
+                    "links": [
+                        {
+                            "rel": "self",
+                            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/location/1",
+                            "method": "GET"
+                        }
+                    ],
+                    "id": "1",
+                    "refName": "VIC Main Warehouse"
+                },
+                "tax1Amt": 92.13,
+                "taxCode": {
+                    "links": [],
+                    "id": "7",
+                    "refName": "GST:TS-AU"
+                },
+                "taxRate1": 10.0
+            }
+        ],
+        "totalResults": 1
+    },
+    "id": "1026519",
+    "item": {
+        "links": [
+            {
+                "rel": "self",
+                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/check/1026519/item",
+                "method": "GET"
+            }
+        ],
+        "items": [],
+        "totalResults": 0
+    },
+    "landedCostPerLine": false,
+    "landedCosts": {
+        "links": [
+            {
+                "rel": "self",
+                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/check/1026519/landedCosts",
+                "method": "GET"
+            }
+        ],
+        "items": [
+            {
+                "links": [
+                    {
+                        "rel": "self",
+                        "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/check/1026519/landedCosts/1",
+                        "method": "GET"
+                    }
+                ],
+                "category": {
+                    "links": [
+                        {
+                            "rel": "self",
+                            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/costcategory/1",
+                            "method": "GET"
+                        }
+                    ],
+                    "id": "1",
+                    "refName": "Sea Freight"
+                }
+            },
+            {
+                "links": [
+                    {
+                        "rel": "self",
+                        "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/check/1026519/landedCosts/2",
+                        "method": "GET"
+                    }
+                ],
+                "category": {
+                    "links": [
+                        {
+                            "rel": "self",
+                            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/costcategory/2",
+                            "method": "GET"
+                        }
+                    ],
+                    "id": "2",
+                    "refName": "GST on Imports"
+                }
+            },
+            {
+                "links": [
+                    {
+                        "rel": "self",
+                        "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/check/1026519/landedCosts/3",
+                        "method": "GET"
+                    }
+                ],
+                "category": {
+                    "links": [
+                        {
+                            "rel": "self",
+                            "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/costcategory/3",
+                            "method": "GET"
+                        }
+                    ],
+                    "id": "3",
+                    "refName": "Customs Duty"
+                }
+            }
+        ],
+        "totalResults": 3
+    },
+    "lastModifiedDate": "2023-11-17T21:11:00Z",
+    "location": {
+        "links": [
+            {
+                "rel": "self",
+                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/location/1",
+                "method": "GET"
+            }
+        ],
+        "id": "1",
+        "refName": "VIC Main Warehouse"
+    },
+    "payeeAddress": {
+        "links": [
+            {
+                "rel": "self",
+                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/check/1026519/payeeAddress",
+                "method": "GET"
+            }
+        ],
+        "addrText": "Australia",
+        "country": {
+            "links": [],
+            "id": "AU",
+            "refName": "Australia"
+        },
+        "override": false
+    },
+    "postingPeriod": {
+        "links": [
+            {
+                "rel": "self",
+                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/accountingperiod/142",
+                "method": "GET"
+            }
+        ],
+        "id": "142",
+        "refName": "Nov 2023"
+    },
+    "prevDate": "2023-11-18",
+    "subsidiary": {
+        "links": [
+            {
+                "rel": "self",
+                "href": "https://6508945.suitetalk.api.netsuite.com/services/rest/record/v1/subsidiary/1",
+                "method": "GET"
+            }
+        ],
+        "id": "1",
+        "refName": "STANLEY PACKAGING GROUP PTY LTD"
+    },
+    "taxTotal": 92.13,
+    "toBePrinted": false,
+    "total": 1013.45,
+    "tranDate": "2023-11-18",
+    "tranId": "1007",
+    "transactionNumber": "CHECK788",
+    "userTotal": 1013.45
+}

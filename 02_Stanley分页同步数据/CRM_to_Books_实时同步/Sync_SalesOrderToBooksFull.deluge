@@ -1,0 +1,179 @@
+// ============================================================================
+// Sync SO + Package + Invoice 到 Books（全量同步）
+// 用途：NetSuite 来源的 SO，需要完整同步到 Books 并自动创建 Package 和 Invoice
+// 逻辑：
+// 1. 调用 SyncSalesOrderToBooks 同步 SO
+// 2. 从 CRM 读取同步后的 Books_SO_ID 和 customerId
+// 3. 调用 SyncPackageToBooks 创建 Package + 标记 shipped（扣库存）
+// 4. 调用 SyncInvoiceToBooks 创建 Invoice + 标记 sent（应收账款）
+// 与 SyncSalesOrderToBooks 的区别：
+// - SyncSalesOrderToBooks: 只同步 SO，适用于 CRM 直接创建的 SO
+// - SyncSalesOrderToBooksFull: SO + Package + Invoice，适用于 NetSuite 来源的 SO
+// ============================================================================
+
+string standalone.SyncSalesOrderToBooksFull(String soId)
+{
+    result = Map();
+
+    // 1. 同步 SO 到 Books
+    soResultStr = standalone.SyncSalesOrderToBooks(soId);
+    info "[FULL] SO sync result: " + soResultStr;
+
+    soResult = soResultStr.toMap();
+    booksSoId = soResult.get("soId");
+
+    // SO 同步成功 → 正常继续
+    // SO 同步失败但原因是锁定（invoiced/shipped）→ SO 已存在且被锁定，仍可继续 Package/Invoice 同步
+    if(soResult.get("status") == "success")
+    {
+        // 正常流程
+    }
+    else
+    {
+        soError = soResult.get("error");
+        isLocked = false;
+        if(soError != null && (soError.contains("invoiced") || soError.contains("shipped")))
+        {
+            isLocked = true;
+            info "[FULL] SO is locked (invoiced/shipped), will try Package/Invoice sync anyway";
+        }
+
+        // 如果 SO 不存在（不是 invoiced 锁定），则真正失败
+        if(!isLocked)
+        {
+            result.put("error", "SO sync failed: " + soError);
+            result.put("status", "failed");
+            return result.toString();
+        }
+
+        // invoiced 锁定：尝试从 CRM 或 Books 获取 Books_SO_ID
+        if(booksSoId == null || booksSoId == "")
+        {
+            // 方法1：从 CRM 读取 Books_SO_ID
+            so = zoho.crm.getRecordById("Sales_Orders", soId);
+            if(so != null)
+            {
+                booksSoId = so.get("Books_SO_ID");
+            }
+        }
+
+        // 方法2：CRM 里也没有，直接在 Books 里搜索
+        if(booksSoId == null || booksSoId == "")
+        {
+            so = zoho.crm.getRecordById("Sales_Orders", soId);
+            soNumber = so.get("Order_Number");
+            if(soNumber == null)
+            {
+                soNumber = so.get("Subject");
+            }
+
+            if(soNumber != null && soNumber != "")
+            {
+                config = standalone.GetBooksConfig().toMap();
+                searchResp = invokeurl
+                [
+                    url: config.get("baseUrl") + "/salesorders?organization_id=" + config.get("organizationId") + "&reference_number=" + encodeUrl(soNumber)
+                    type: GET
+                    connection: "books"
+                ];
+                if(searchResp != null && searchResp.get("code") == 0)
+                {
+                    salesorders = searchResp.get("salesorders");
+                    if(salesorders != null && salesorders.size() > 0)
+                    {
+                        booksSoId = salesorders.get(0).get("salesorder_id");
+                        info "[FULL] Found SO in Books by reference_number: " + booksSoId;
+                    }
+                }
+            }
+        }
+
+        if(booksSoId == null || booksSoId == "")
+        {
+            result.put("error", "SO locked but Books_SO_ID not found in CRM");
+            result.put("status", "failed");
+            return result.toString();
+        }
+    }
+
+    // 2. 获取 customerId（从 CRM 读取 Account，再调用 SyncAccountToBooks）
+    so = zoho.crm.getRecordById("Sales_Orders", soId);
+    if(so == null)
+    {
+        result.put("error", "Sales Order not found when getting customerId");
+        result.put("status", "failed");
+        return result.toString();
+    }
+
+    accountObj = so.get("Account_Name");
+    if(accountObj == null)
+    {
+        result.put("error", "Account is required for Package/Invoice sync");
+        result.put("status", "failed");
+        return result.toString();
+    }
+
+    accountId = accountObj.get("id");
+    customerId = standalone.SyncAccountToBooks(accountId);
+
+    if(customerId == null || customerId == "" || customerId == "exists")
+    {
+        result.put("error", "Failed to get customerId for Package/Invoice sync");
+        result.put("status", "failed");
+        return result.toString();
+    }
+
+    // 3. 同步 Package（创建 + 标记 shipped，触发库存扣减）
+    packageResultStr = standalone.SyncPackageToBooks(soId, booksSoId, customerId);
+    info "[FULL] Package result: " + packageResultStr;
+
+    packageResult = packageResultStr.toMap();
+
+    // 4. 同步 Invoice（创建 + 标记 sent）
+    invoiceResultStr = standalone.SyncInvoiceToBooks(soId, booksSoId, customerId);
+    info "[FULL] Invoice result: " + invoiceResultStr;
+
+    invoiceResult = invoiceResultStr.toMap();
+
+    // 5. 写回 Books ID 到 CRM SO
+    booksUpdateMap = Map();
+    if(packageResult.get("packageId") != null && packageResult.get("packageId") != "")
+    {
+        booksUpdateMap.put("Books_Package_ID", packageResult.get("packageId"));
+    }
+    if(invoiceResult.get("invoiceId") != null && invoiceResult.get("invoiceId") != "")
+    {
+        booksUpdateMap.put("Books_Invoice_ID", invoiceResult.get("invoiceId"));
+    }
+    if(booksUpdateMap.size() > 0)
+    {
+        zoho.crm.updateRecord("Sales_Orders", soId, booksUpdateMap);
+        info "[FULL] Updated CRM SO with Books Package/Invoice IDs";
+    }
+
+    // 6. 汇总结果
+    result.put("soId", booksSoId);
+    result.put("packageId", packageResult.get("packageId"));
+    result.put("invoiceId", invoiceResult.get("invoiceId"));
+    result.put("packageStatus", packageResult.get("status"));
+    result.put("invoiceStatus", invoiceResult.get("status"));
+
+    // 只要 SO 成功就算成功，Package/Invoice 失败单独标记
+    if(packageResult.get("status") == "success" && invoiceResult.get("status") == "success")
+    {
+        result.put("status", "success");
+        info "[FULL] All synced: SO=" + booksSoId + " PKG=" + packageResult.get("packageId") + " INV=" + invoiceResult.get("invoiceId");
+    }
+    else if(packageResult.get("status") == "skipped" && invoiceResult.get("status") == "skipped")
+    {
+        result.put("status", "skipped");
+        info "[FULL] Package & Invoice already exist for SO: " + booksSoId;
+    }
+    else
+    {
+        result.put("status", "partial");
+        info "[FULL] Partial sync: PKG=" + packageResult.get("status") + " INV=" + invoiceResult.get("status");
+    }
+
+    return result.toString();
+}

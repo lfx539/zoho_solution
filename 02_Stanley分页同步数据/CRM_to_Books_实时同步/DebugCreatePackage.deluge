@@ -1,0 +1,139 @@
+// ============================================================================
+// 测试 Books Package 完整流程（创建 + shipped）
+// 已验证的正确 API 调用方式：
+//   创建: POST /packages?salesorder_id={soId}&organization_id={orgId}
+//         body: {customer_id, date, reference_number, line_items[{so_line_item_id, quantity, warehouse_id}]}
+//         注意: salesorder_id 必须在 query param，放在 body 里会报 "Sales Order does not exist"
+//   发货: POST /shipmentorders?package_ids={pkgId}&organization_id={orgId}
+//         body: {salesorder_id, customer_id, shipment_date, carrier, delivery_method_id, shipment_type}
+//         注意: package_ids 必须在 query param，放在 body 里会报 "Invalid value passed for package_ids"
+//         /packages/{id}/ship 端点需要 carrier 集成的 rate_id，不适合 API 调用
+//   前置: SO 必须处于 confirmed 状态
+//   delivery_method_id: 259067000001714021 (Click & Collect VIC (Free))
+// ============================================================================
+
+string standalone.DebugCreatePackage()
+{
+    config = standalone.GetBooksConfig().toMap();
+    baseUrl = config.get("baseUrl");
+    orgId = config.get("organizationId");
+
+    booksSoId = "259067000002384434";   // SO97715
+    customerId = "259067000000917220";
+    deliveryMethodId = "259067000001714021";
+
+    // ---- 确认 SO ----
+    soResp = invokeurl
+    [
+        url: baseUrl + "/salesorders/" + booksSoId + "?organization_id=" + orgId
+        type: GET
+        connection: "books"
+    ];
+    soDetail = soResp.get("salesorder");
+    soStatus = soDetail.get("status");
+    if(!soStatus.equalsIgnoreCase("confirmed"))
+    {
+        confirmResp = invokeurl
+        [
+            url: baseUrl + "/salesorders/" + booksSoId + "/status/confirmed?organization_id=" + orgId
+            type: POST
+            connection: "books"
+        ];
+        info "SO confirmed: " + confirmResp.get("code");
+    }
+
+    soLineItems = soDetail.get("line_items");
+    firstLine = soLineItems.get(0);
+    lineItemId = firstLine.get("line_item_id");
+    locationId = firstLine.get("location_id");
+    qty = firstLine.get("quantity");
+
+    // ---- 创建 Package ----
+    info "===== STEP 1: Create Package =====";
+
+    lineItems = List();
+    li = Map();
+    li.put("so_line_item_id", lineItemId);
+    li.put("quantity", qty);
+    if(locationId != null)
+    {
+        li.put("warehouse_id", locationId);
+    }
+    lineItems.add(li);
+
+    pkgData = Map();
+    pkgData.put("customer_id", customerId);
+    pkgData.put("date", "2026-07-27");
+    pkgData.put("reference_number", "TEST-FINAL");
+    pkgData.put("line_items", lineItems);
+
+    createResp = invokeurl
+    [
+        url: baseUrl + "/packages?salesorder_id=" + booksSoId + "&organization_id=" + orgId
+        type: POST
+        parameters: pkgData.toString()
+        connection: "books"
+    ];
+
+    if(createResp.get("code") != 0)
+    {
+        info "Package creation FAILED: " + createResp.get("message");
+        return "failed";
+    }
+
+    pkgObj = createResp.get("package");
+    pkgId = pkgObj.get("package_id");
+    info "Package created: " + pkgId;
+    info "status: " + pkgObj.get("status");
+    info "";
+
+    // ---- 标记 Shipped（通过 shipmentorders 端点）----
+    info "===== STEP 2: Mark as shipped =====";
+
+    shipData = Map();
+    shipData.put("salesorder_id", booksSoId);
+    shipData.put("customer_id", customerId);
+    shipData.put("shipment_date", "2026-07-27");
+    shipData.put("carrier", "Click & Collect VIC (Free)");
+    shipData.put("delivery_method_id", deliveryMethodId);
+    shipData.put("shipment_type", "single_piece_shipment");
+
+    shipResp = invokeurl
+    [
+        url: baseUrl + "/shipmentorders?package_ids=" + pkgId + "&organization_id=" + orgId
+        type: POST
+        parameters: shipData.toString()
+        connection: "books"
+    ];
+
+    info "[SHIP] code = " + shipResp.get("code");
+    info "[SHIP] message = " + shipResp.get("message");
+    info "";
+
+    // ---- 验证 ----
+    info "===== STEP 3: Verify =====";
+    verifyResp = invokeurl
+    [
+        url: baseUrl + "/packages/" + pkgId + "?organization_id=" + orgId
+        type: GET
+        connection: "books"
+    ];
+
+    if(verifyResp.get("code") == 0)
+    {
+        verifyPkg = verifyResp.get("package");
+        info "status: " + verifyPkg.get("status");
+        info "salesorder_id: " + verifyPkg.get("salesorder_id");
+        info "shipment_id: " + verifyPkg.get("shipment_id");
+        info "carrier: " + verifyPkg.get("carrier");
+        info "delivery_method: " + verifyPkg.get("delivery_method");
+    }
+
+    info "";
+    info "===== DONE =====";
+
+    // 注意：已 shipped 的 Package 不能直接 DELETE，需要先取消 shipment
+    // 测试时如果需要清理，在 Books UI 里手动删除
+
+    return "done";
+}

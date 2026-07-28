@@ -1,0 +1,242 @@
+// ============================================================================
+// Sync Package 到 Books（从 CRM SO 创建 Books Package 并标记 shipped）
+// 逻辑：
+// 1. 检查 Books SO 是否已有关联的 Package
+// 2. 没找到 → 创建 Package（salesorder_id 在 query param）→ 标记 shipped（触发库存扣减）
+// 3. 找到了 → 跳过（幂等）
+// API 关键发现（通过 DebugCreatePackage 测试验证）：
+//   - 创建 Package: POST /packages?salesorder_id={soId}&organization_id={orgId}
+//     salesorder_id 必须在 query param，放在 body 里会报 "Sales Order does not exist"
+//   - 标记 Shipped: POST /shipmentorders?package_ids={pkgId}&organization_id={orgId}
+//     /packages/{id}/ship 端点需要 carrier 集成的 rate_id，不适合 API 调用
+//     shipmentorders 端点创建后 Package 自动变为 shipped 状态
+//   - delivery_method_id: 259067000001714021 (Click & Collect VIC (Free))
+// 前置依赖：
+// 1. SO 已同步到 Books（需要 booksSoId）
+// 2. Account 已同步到 Books（需要 customerId）
+// 3. Product 已同步到 Books（需要 itemId）
+// ============================================================================
+
+string standalone.SyncPackageToBooks(String soId, String booksSoId, String customerId)
+{
+    result = Map();
+
+    try
+    {
+        // 1. 获取 CRM SO 信息
+        so = zoho.crm.getRecordById("Sales_Orders", soId);
+        if(so == null)
+        {
+            result.put("error", "Sales Order not found");
+            return result.toString();
+        }
+
+        soNumber = so.get("Order_Number");
+        if(soNumber == null)
+        {
+            soNumber = so.get("Subject");
+        }
+        info "Sync Package for SO: " + soNumber;
+
+        // 2. 获取 Books 配置
+        config = standalone.GetBooksConfig().toMap();
+        baseUrl = config.get("baseUrl");
+        orgId = config.get("organizationId");
+
+        // 3. 确认 SO 并检查是否已有关联的 Package
+        soDetailResp = invokeurl
+        [
+            url: baseUrl + "/salesorders/" + booksSoId + "?organization_id=" + orgId
+            type: GET
+            connection: "books"
+        ];
+
+        if(soDetailResp == null || soDetailResp.get("code") != 0)
+        {
+            errorMsg = "Failed to fetch Books SO detail";
+            if(soDetailResp != null)
+            {
+                errorMsg = soDetailResp.get("message");
+            }
+            result.put("error", errorMsg);
+            result.put("status", "failed");
+            return result.toString();
+        }
+
+        soDetail = soDetailResp.get("salesorder");
+
+        // 确认 SO（Package 需要 SO 处于 confirmed 状态）
+        soStatus = soDetail.get("status");
+        if(soStatus == null || !soStatus.equalsIgnoreCase("confirmed"))
+        {
+            info "[PKG] Confirming SO status...";
+            confirmResp = invokeurl
+            [
+                url: baseUrl + "/salesorders/" + booksSoId + "/status/confirmed?organization_id=" + orgId
+                type: POST
+                connection: "books"
+            ];
+            if(confirmResp != null && confirmResp.get("code") == 0)
+            {
+                info "[OK] SO confirmed";
+            }
+            else
+            {
+                confirmErrMsg = "No response";
+                if(confirmResp != null)
+                {
+                    confirmErrMsg = confirmResp.get("message");
+                }
+                info "[WARN] SO confirm failed: " + confirmErrMsg;
+            }
+        }
+
+        // 检查是否已有关联此 SO 的 Package
+        soPackages = soDetail.get("packages");
+        if(soPackages != null && soPackages.size() > 0)
+        {
+            existingPackageId = soPackages.get(0).get("package_id");
+            info "[SKIP] Package already linked to SO: " + existingPackageId;
+            result.put("packageId", existingPackageId);
+            result.put("status", "skipped");
+            result.put("action", "exists");
+            return result.toString();
+        }
+
+        // 4. 从 Books SO 获取 line items（产品已存在于 Books，直接复用）
+        soLineItems = soDetail.get("line_items");
+        if(soLineItems == null || soLineItems.size() == 0)
+        {
+            result.put("error", "No line items in Books SO");
+            result.put("status", "failed");
+            return result.toString();
+        }
+
+        lineItems = List();
+        for each soLine in soLineItems
+        {
+            lineItemId = soLine.get("line_item_id");
+            if(lineItemId == null)
+            {
+                continue;
+            }
+
+            lineItem = Map();
+            lineItem.put("so_line_item_id", lineItemId);
+            lineItem.put("quantity", soLine.get("quantity"));
+
+            // warehouse_id: 指定从哪个仓库扣库存（SO 里叫 location_id）
+            locId = soLine.get("location_id");
+            if(locId != null)
+            {
+                lineItem.put("warehouse_id", locId);
+            }
+
+            lineItems.add(lineItem);
+        }
+
+        if(lineItems.size() == 0)
+        {
+            result.put("error", "No valid line items for Package");
+            result.put("status", "failed");
+            return result.toString();
+        }
+
+        // 5. 构建 Package 数据
+        // salesorder_id 必须在 query param，不能放在 body 里
+        packageData = Map();
+        packageData.put("customer_id", customerId);
+        packageData.put("date", so.get("Created_Time").substring(0, 10));
+        packageData.put("reference_number", soNumber);
+        packageData.put("line_items", lineItems);
+
+        // 6. 创建 Package（salesorder_id 在 query param）
+        info "[DEBUG] packageData = " + packageData.toString();
+        createResp = invokeurl
+        [
+            url: baseUrl + "/packages?salesorder_id=" + booksSoId + "&organization_id=" + orgId
+            type: POST
+            parameters: packageData.toString()
+            connection: "books"
+        ];
+
+        if(createResp == null || createResp.get("code") != 0)
+        {
+            errorMsg = "No response";
+            if(createResp != null)
+            {
+                errorMsg = createResp.get("message");
+            }
+            info "[ERR] Package create failed: " + errorMsg;
+            result.put("error", errorMsg);
+            result.put("status", "failed");
+            automation.SaveBooksSyncLog("Package", soId, "", "Failed", errorMsg);
+            return result.toString();
+        }
+
+        packageObj = createResp.get("package");
+        if(packageObj == null)
+        {
+            packageId = createResp.get("package_id");
+        }
+        else
+        {
+            packageId = packageObj.get("package_id");
+        }
+        info "[OK] Package created: " + packageId;
+
+        // 7. 标记 Package 为 shipped（触发库存扣减）
+        // 使用 shipmentorders 端点，package_ids 在 query param
+        // /packages/{id}/ship 端点需要 carrier 集成的 rate_id，不适合 API 调用
+        soDate = so.get("Created_Time").substring(0, 10);
+
+        shipData = Map();
+        shipData.put("salesorder_id", booksSoId);
+        shipData.put("customer_id", customerId);
+        shipData.put("shipment_date", soDate);
+        shipData.put("carrier", "Click & Collect VIC (Free)");
+        shipData.put("delivery_method_id", "259067000001714021");
+        shipData.put("shipment_type", "single_piece_shipment");
+
+        shipResp = invokeurl
+        [
+            url: baseUrl + "/shipmentorders?package_ids=" + packageId + "&organization_id=" + orgId
+            type: POST
+            parameters: shipData.toString()
+            connection: "books"
+        ];
+
+        if(shipResp != null && shipResp.get("code") == 0)
+        {
+            info "[OK] Package shipped - inventory deducted";
+        }
+        else
+        {
+            shipErrMsg = "No response";
+            if(shipResp != null)
+            {
+                shipErrMsg = shipResp.get("message");
+            }
+            info "[WARN] Package ship failed (inventory may not be deducted): " + shipErrMsg;
+        }
+
+        // 8. 返回结果
+        result.put("packageId", packageId);
+        result.put("status", "success");
+        result.put("action", "created");
+
+        automation.SaveBooksSyncLog("Package", soId, packageId, "Success", "Package created and shipped");
+
+        return result.toString();
+    }
+    catch (e)
+    {
+        errorMsg = "Exception: " + e.toString();
+        info "[ERR] Package sync exception: " + errorMsg;
+        result.put("error", errorMsg);
+        result.put("status", "failed");
+        automation.SaveBooksSyncLog("Package", soId, "", "Failed", errorMsg);
+    }
+
+    return result.toString();
+}
