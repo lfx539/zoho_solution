@@ -1,0 +1,165 @@
+// ============================================================================
+// 从 CRM 同步 SO 到 Books（按日期过滤，批量同步）
+// 用途：同步 2026-07-01 之后的 Sales Orders 到 Zoho Books（仅 SO）
+// 每次执行处理 200 条，定时任务驱动，自动续传
+// ============================================================================
+
+void schedule.BatchSyncSOToBooks()
+{
+	startDate = "2026-07-01";
+	successCount = 0;
+	failCount = 0;
+	skipCount = 0;
+	failedSoIds = List();
+
+	// 1. 从 BooksSyncLogs 读取断点
+	currentOffset = 0;
+	logName = "BatchSOToBooks_" + startDate;
+	statusLogs = zoho.crm.searchRecords("BooksSyncLogs","(Module:equals:" + logName + ")");
+	existingLogId = null;
+	if(statusLogs != null && statusLogs.size() > 0)
+	{
+		existingLogId = statusLogs.get(0).get("id");
+		lastError = statusLogs.get(0).get("Error_Message");
+		if(lastError != null && lastError != "")
+		{
+			try
+			{
+				currentOffset = lastError.toLong();
+			}
+			catch(e)
+			{
+				currentOffset = 0;
+			}
+		}
+	}
+	info "===== Batch SO→Books from " + startDate + ", offset=" + currentOffset + " =====";
+
+	// 2. COQL 查询（每次最多 200 条）
+	coqlQuery = "select id from Sales_Orders where Date >= '" + startDate + "' and Books_SO_ID is null order by Date asc limit 200 offset " + currentOffset;
+	requestParams = Map();
+	requestParams.put("select_query", coqlQuery);
+	coqlResp = invokeurl
+	[
+		url :"https://www.zohoapis.com.au/crm/v8/coql"
+		type :POST
+		parameters:requestParams.toString()
+		connection:"crm"
+	];
+
+	if(coqlResp == null)
+	{
+		info "[ERR] COQL查询失败";
+		return;
+	}
+
+	errorCode = coqlResp.get("code");
+	if(errorCode != null && errorCode != "SUCCESS" && errorCode != "0")
+	{
+		info "[ERR] COQL Error: " + errorCode + " - " + coqlResp.get("message");
+		return;
+	}
+
+	dataList = coqlResp.get("data");
+	if(dataList == null || dataList.size() == 0)
+	{
+		info "没有符合条件的数据，同步完成";
+		return;
+	}
+
+	info "COQL 返回 " + dataList.size() + " 条 SO（offset=" + currentOffset + "）";
+
+	// 3. 逐条处理
+	processedThisBatch = 0;
+	for each soRecord in dataList
+	{
+		soId = soRecord.get("id");
+		if(soId == null || soId == "")
+		{
+			processedThisBatch = processedThisBatch + 1;
+			continue;
+		}
+
+		try
+		{
+			syncResultStr = standalone.SyncSalesOrderToBooks(soId.toString());
+			syncResult = syncResultStr.toMap();
+
+			syncStatus = syncResult.get("status");
+			if(syncStatus == "success" || syncStatus == "partial")
+			{
+				successCount = successCount + 1;
+			}
+			else if(syncStatus == "skipped")
+			{
+				skipCount = skipCount + 1;
+			}
+			else
+			{
+				failCount = failCount + 1;
+				failedSoIds.add(soId.toString());
+				syncError = syncResult.get("error");
+				info "[ERR] SO " + soId + " - " + syncError;
+			}
+		}
+		catch(e)
+		{
+			failCount = failCount + 1;
+			failedSoIds.add(soId.toString());
+			info "[ERR] Exception: SO " + soId + " - " + e;
+		}
+
+		processedThisBatch = processedThisBatch + 1;
+	}
+
+	// 4. 更新断点到 BooksSyncLogs
+	newOffset = currentOffset + processedThisBatch;
+	isCompleted = false;
+	if(dataList.size() < 200)
+	{
+		isCompleted = true;
+	}
+
+	logData = Map();
+	logData.put("Name", logName);
+	logData.put("Module", logName);
+	logData.put("CRM_Record_ID", "batch");
+	logData.put("Books_Record_ID", "N/A");
+	if(isCompleted)
+	{
+		logData.put("Sync_Status","Completed");
+		logData.put("Error_Message","");
+	}
+	else
+	{
+		logData.put("Sync_Status","InProgress");
+		logData.put("Error_Message", newOffset.toString());
+	}
+
+	if(existingLogId != null)
+	{
+		zoho.crm.updateRecord("BooksSyncLogs", existingLogId.toString(), logData);
+	}
+	else
+	{
+		zoho.crm.createRecord("BooksSyncLogs", logData);
+	}
+
+	// 5. 保存错误 IDs 到 SOLogs
+	if(failedSoIds != null && failedSoIds.size() > 0)
+	{
+		automation.saveSalesOrderErrorIdsToLogs(failedSoIds.toString(), failedSoIds.size(), currentOffset, newOffset, successCount, failCount);
+		info "错误 IDs 已保存到 SOLogs（共 " + failedSoIds.size() + " 条）";
+	}
+
+	// 6. 输出结果
+	if(isCompleted)
+	{
+		info "===== 全部完成！成功:" + successCount + " 失败:" + failCount + " 跳过:" + skipCount + " =====";
+	}
+	else
+	{
+		info "===== 本批完成，成功:" + successCount + " 失败:" + failCount + " 跳过:" + skipCount + " =====";
+		info "下次执行将从 offset=" + newOffset + " 继续";
+	}
+}

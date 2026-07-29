@@ -136,6 +136,7 @@ string standalone.SyncSalesOrderToBooks(String soId)
 
         // 获取 Books Tax 列表
         taxMap = Map();  // key: tax_name, value: tax_id
+        gstTaxId10 = null;  // 10% GST 的 tax_id
         try
         {
             taxResp = invokeurl
@@ -153,9 +154,19 @@ string standalone.SyncSalesOrderToBooks(String soId)
                     {
                         taxName = tax.get("tax_name");
                         taxId = tax.get("tax_id");
+                        taxPct = tax.get("tax_percentage");
                         if(taxName != null && taxId != null)
                         {
-                            taxMap.put(taxName, taxId);
+                            // 同名时保留税率 > 0 的（Books 里有两个 GST: 10% 和 0%）
+                            existingId = taxMap.get(taxName);
+                            if(existingId == null || (taxPct != null && taxPct > 0))
+                            {
+                                taxMap.put(taxName, taxId);
+                            }
+                        }
+                        if(taxPct != null && taxPct == 10 && gstTaxId10 == null)
+                        {
+                            gstTaxId10 = taxId;
                         }
                     }
                 }
@@ -289,35 +300,10 @@ string standalone.SyncSalesOrderToBooks(String soId)
                 }
             }
 
-            // Tax mapping for SO:
-            // GST_Code 固定格式: "GST:NA-AU" 或 "GST:TS-AU"
-            // GST:TS-AU → 10% GST
-            // GST:NA-AU → 0% NA
-            // 没有 GST_Code → 默认 10%
-            gstCode = item.get("GST_Code");
-            if(gstCode == null || gstCode == "")
+            // Tax: SO 默认 10% GST
+            if(gstTaxId10 != null)
             {
-                gstTaxId = taxMap.get("GST");
-                if(gstTaxId != null)
-                {
-                    lineItem.put("tax_id", gstTaxId);
-                }
-            }
-            else if(gstCode.contains("NA-AU"))
-            {
-                naTaxId = taxMap.get("NA");
-                if(naTaxId != null)
-                {
-                    lineItem.put("tax_id", naTaxId);
-                }
-            }
-            else
-            {
-                gstTaxId = taxMap.get("GST");
-                if(gstTaxId != null)
-                {
-                    lineItem.put("tax_id", gstTaxId);
-                }
+                lineItem.put("tax_id", gstTaxId10);
             }
 
             lineItems.add(lineItem);
@@ -370,10 +356,9 @@ string standalone.SyncSalesOrderToBooks(String soId)
         {
             soData.put("shipping_charge", shipCost);
             // Shipping Charge Tax 默认 10% GST
-            gstTaxId = taxMap.get("GST");
-            if(gstTaxId != null)
+            if(gstTaxId10 != null)
             {
-                soData.put("shipping_charge_tax_id", gstTaxId);
+                soData.put("shipping_charge_tax_id", gstTaxId10);
             }
         }
         disc = so.get("Discount");
@@ -448,8 +433,9 @@ string standalone.SyncSalesOrderToBooks(String soId)
 
                 updateMap = Map();
                 updateMap.put("Books_SO_ID", existingSoId);
-                updateMap.put("Books_Sync_Status", "Success");
-                zoho.crm.updateRecord("Sales_Orders", soId.toString(), updateMap);
+                updateMap.put("Books_Sync_Status", true);
+                updateResp = zoho.crm.updateRecord("Sales_Orders", soId.toString(), updateMap);
+                info "[DEBUG] updateRecord (update): soId=" + soId + " Books_SO_ID=" + existingSoId + " resp=" + updateResp;
 
                 result.put("soId", existingSoId);
                 result.put("status", "success");
@@ -463,7 +449,7 @@ string standalone.SyncSalesOrderToBooks(String soId)
                 info "[ERR] SO update failed: " + errorMsg;
 
                 updateMap = Map();
-                updateMap.put("Books_Sync_Status", "Failed");
+                updateMap.put("Books_Sync_Status", false);
                 zoho.crm.updateRecord("Sales_Orders", soId.toString(), updateMap);
 
                 result.put("error", errorMsg);
@@ -493,8 +479,9 @@ string standalone.SyncSalesOrderToBooks(String soId)
 
                 updateMap = Map();
                 updateMap.put("Books_SO_ID", booksSoId);
-                updateMap.put("Books_Sync_Status", "Success");
-                zoho.crm.updateRecord("Sales_Orders", soId.toString(), updateMap);
+                updateMap.put("Books_Sync_Status", true);
+                updateResp = zoho.crm.updateRecord("Sales_Orders", soId.toString(), updateMap);
+                info "[DEBUG] updateRecord (create): soId=" + soId + " Books_SO_ID=" + booksSoId + " resp=" + updateResp;
 
                 result.put("soId", booksSoId);
                 result.put("status", "success");
@@ -508,7 +495,7 @@ string standalone.SyncSalesOrderToBooks(String soId)
                 info "[ERR] SO create failed: " + errorMsg;
 
                 updateMap = Map();
-                updateMap.put("Books_Sync_Status", "Failed");
+                updateMap.put("Books_Sync_Status", false);
                 zoho.crm.updateRecord("Sales_Orders", soId.toString(), updateMap);
 
                 result.put("error", errorMsg);

@@ -1,0 +1,40 @@
+// 测试：统计 7.1 后 SO 总数
+// 用法：standalone.TestCOQLSOCount("2026-07-01")
+
+string standalone.TestCOQLSOCount(String startDate)
+{
+    total = 0;
+    offset = 0;
+
+    pageList = {1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25};
+    for each pageNum in pageList
+    {
+        coqlQuery = "select id from Sales_Orders where Date >= '" + startDate + "' limit 200 offset " + offset;
+        requestParams = Map();
+        requestParams.put("select_query", coqlQuery);
+        coqlResp = invokeurl
+        [
+            url :"https://www.zohoapis.com.au/crm/v8/coql"
+            type :POST
+            parameters:requestParams.toString()
+            connection:"crm"
+        ];
+
+        if(coqlResp == null || coqlResp.get("data") == null)
+        {
+            break;
+        }
+
+        batchCount = coqlResp.get("data").size();
+        total = total + batchCount;
+
+        if(batchCount < 200)
+        {
+            break;
+        }
+        offset = offset + 200;
+    }
+
+    info startDate + " 后 SO 总数: " + total;
+    return total.toString();
+}
