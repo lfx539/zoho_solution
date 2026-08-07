@@ -1,0 +1,144 @@
+// ResyncSOsByProduct: find and resync all SOs containing a product
+// Input: productName, maxSyncCount (0 = all)
+// Logic: FindSOsByProduct + SyncSalesOrderToBooks for each
+// Returns: summary with success/locked/fail counts
+
+string standalone.ResyncSOsByProduct(String productName, int maxSyncCount)
+{
+    result = Map();
+    successList = List();
+    lockedList = List();
+    failList = List();
+
+    try
+    {
+        // 1. Find all matching SOs
+        findResultStr = standalone.FindSOsByProduct(productName);
+        findResult = findResultStr.toMap();
+
+        if(findResult.get("status") != "success")
+        {
+            result.put("error", findResult.get("error"));
+            result.put("status", "failed");
+            return result.toString();
+        }
+
+        matchedSOs = findResult.get("soList");
+        totalFound = findResult.get("totalFound");
+
+        info "[RESYNC] Found " + totalFound + " SOs for product: " + productName;
+
+        if(totalFound == 0)
+        {
+            result.put("totalFound", 0);
+            result.put("synced", 0);
+            result.put("status", "success");
+            return result.toString();
+        }
+
+        // 2. Determine how many to sync
+        syncCount = totalFound;
+        if(maxSyncCount > 0 && maxSyncCount < totalFound)
+        {
+            syncCount = maxSyncCount;
+            info "[RESYNC] Limiting to " + syncCount + " SOs (maxSyncCount=" + maxSyncCount + ")";
+        }
+
+        // 3. Sync each SO
+        rateLimited = false;
+        for each soInfo in matchedSOs
+        {
+            if(rateLimited)
+            {
+                break;
+            }
+
+            // Stop if we reached the limit
+            if(successList.size() + failList.size() + lockedList.size() >= syncCount)
+            {
+                break;
+            }
+
+            soId = soInfo.get("id");
+            soNumber = soInfo.get("Order_Number");
+            soSubject = soInfo.get("Subject");
+
+            try
+            {
+                info "[RESYNC] Syncing SO: " + soSubject + " (" + soId + ")";
+                syncResultStr = standalone.SyncSalesOrderToBooks(soId);
+                syncResult = syncResultStr.toMap();
+                syncStatus = syncResult.get("status");
+
+                if(syncStatus == "rate_limited")
+                {
+                    rateLimited = true;
+                    failList.add(soSubject);
+                    info "[RATE_LIMIT] Stopping resync";
+                    continue;
+                }
+
+                if(syncStatus == "success")
+                {
+                    successList.add(soSubject);
+                    info "[OK] Resynced SO: " + soSubject;
+                }
+                else
+                {
+                    syncError = syncResult.get("error");
+                    if(syncError != null && (syncError.contains("invoiced") || syncError.contains("shipped")))
+                    {
+                        lockedList.add(soSubject);
+                        info "[LOCKED] SO is locked: " + soSubject;
+                    }
+                    else
+                    {
+                        failList.add(soSubject);
+                        info "[ERR] SO resync failed: " + soSubject + " - " + syncError;
+                    }
+                }
+            }
+            catch(e)
+            {
+                failList.add(soSubject);
+                info "[ERR] Exception: SO " + soSubject + " - " + e;
+            }
+        }
+
+        // 4. Summary
+        result.put("productName", productName);
+        result.put("totalFound", totalFound);
+        result.put("synced", successList.size() + failList.size() + lockedList.size());
+        result.put("successCount", successList.size());
+        result.put("lockedCount", lockedList.size());
+        result.put("failCount", failList.size());
+        result.put("successList", successList);
+        result.put("lockedList", lockedList);
+        result.put("failList", failList);
+
+        if(rateLimited)
+        {
+            result.put("status", "partial");
+            result.put("message", "Rate limited. Re-run after quota resets.");
+        }
+        else if(failList.size() > 0)
+        {
+            result.put("status", "partial");
+        }
+        else
+        {
+            result.put("status", "success");
+        }
+
+        info "[RESYNC] Done. Success: " + successList.size() + " Locked: " + lockedList.size() + " Failed: " + failList.size();
+    }
+    catch(e)
+    {
+        errorMsg = "Exception: " + e.toString();
+        info "[ERR] Resync exception: " + errorMsg;
+        result.put("error", errorMsg);
+        result.put("status", "failed");
+    }
+
+    return result.toString();
+}

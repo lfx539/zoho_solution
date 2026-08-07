@@ -1,0 +1,60 @@
+// ============================================================================
+// Workflow 触发：SO 创建或编辑时自动同步到 Books
+// 用途：绑定 CRM Workflow，SO 创建/编辑时自动调用 SyncSalesOrderToBooks
+// 类型：void（Workflow 要求）
+// 防重入：通过检查 Books_SO_ID 和 Books_Sync_Status 避免写回触发的无限循环
+// ============================================================================
+
+void automation.SyncSOToBooksForWFL(String soId)
+{
+    if(soId == null || soId == "")
+    {
+        info "[WFL-SO] soId is empty, skip";
+        return;
+    }
+
+    // 防重入：检查 SO 当前状态，如果已同步且 sync status 为 true 则跳过
+    // （SyncSalesOrderToBooks 写回 Books_SO_ID + Books_Sync_Status=true 会触发 update，
+    //   此 guard 防止无限循环）
+    try
+    {
+        so = zoho.crm.getRecordById("Sales_Orders", soId);
+        if(so != null)
+        {
+            syncStatus = so.get("Books_Sync_Status");
+            booksSoId = so.get("Books_SO_ID");
+            if(booksSoId != null && booksSoId != "" && syncStatus == true)
+            {
+                info "[WFL-SO] Already synced, skip re-trigger: " + soId;
+                return;
+            }
+        }
+    }
+    catch(e)
+    {
+        info "[WFL-SO] Guard check failed: " + e;
+    }
+
+    // 调用现有同步函数
+    try
+    {
+        resultStr = standalone.SyncSalesOrderToBooks(soId.toString());
+        result = resultStr.toMap();
+        status = result.get("status");
+        action = result.get("action");
+
+        if(status == "success")
+        {
+            info "[WFL-SO] Sync OK: " + soId + " action=" + action;
+        }
+        else
+        {
+            error = result.get("error");
+            info "[WFL-SO] Sync failed: " + soId + " status=" + status + " error=" + error;
+        }
+    }
+    catch(e)
+    {
+        info "[WFL-SO] Exception: " + soId + " - " + e;
+    }
+}

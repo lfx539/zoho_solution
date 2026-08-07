@@ -1,0 +1,70 @@
+// ============================================================================
+// 测试 BatchSyncInvoiceToBooks 的 COQL 查询（从 Invoice 侧查询，分页遍历，仅查询不执行同步）
+// 注意：Deluge 不支持 while 循环，用固定次数的 for 循环替代
+// ============================================================================
+
+string standalone.TestBatchInvoiceCOQL()
+{
+    result = Map();
+    startDate = "2026-07-01";
+    allInvoiceIds = List();
+    totalScanned = 0;
+
+    // 最多遍历 50 页（50 * 200 = 10000 条），足够覆盖所有数据
+    for each pageNum in {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49}
+    {
+        offset = pageNum * 200;
+        // 尝试跨模块过滤：Invoice 关联的 SO 的 Books_Invoice_ID 为空（即 Invoice 未同步）
+        coqlQuery = "select id, Invoice_No, Sales_Order from Invoices where (Invoice_Date >= '" + startDate + "' and (Sales_Order is not null and Sales_Order.Books_Invoice_ID is null)) order by Invoice_Date asc limit 200 offset " + offset;
+        requestParams = Map();
+        requestParams.put("select_query", coqlQuery);
+        coqlResp = invokeurl
+        [
+            url: "https://www.zohoapis.com.au/crm/v8/coql"
+            type: POST
+            parameters: requestParams.toString()
+            connection: "crm"
+        ];
+
+        if(coqlResp == null)
+        {
+            info "[ERR] COQL查询失败 at offset " + offset;
+            break;
+        }
+
+        errorCode = coqlResp.get("code");
+        if(errorCode != null && errorCode != "SUCCESS" && errorCode != "0")
+        {
+            info "[ERR] COQL Error: " + errorCode + " - " + coqlResp.get("message");
+            break;
+        }
+
+        dataList = coqlResp.get("data");
+        if(dataList == null || dataList.size() == 0)
+        {
+            break;
+        }
+
+        for each invRecord in dataList
+        {
+            allInvoiceIds.add(invRecord.get("id"));
+        }
+
+        totalScanned = totalScanned + dataList.size();
+        info "[COQL] Page " + pageNum + " offset=" + offset + " 返回 " + dataList.size() + " 条，累计 " + allInvoiceIds.size();
+
+        if(dataList.size() < 200)
+        {
+            break;
+        }
+    }
+
+    result.put("totalCount", allInvoiceIds.size());
+    result.put("invoiceIds", allInvoiceIds);
+    result.put("status", "success");
+
+    info "===== Test COQL Result =====";
+    info "有对应 SO 的 Invoice 总数: " + allInvoiceIds.size();
+
+    return result.toString();
+}

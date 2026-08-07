@@ -1,0 +1,121 @@
+// ============================================================================
+// 从 CRM Invoice 批量同步 Package + Invoice 到 Books
+// 用途：查询所有有关联 SO 的 CRM Invoice，
+//       调用 SyncInvoiceToBooksFromInvoices 创建 Books Package + Invoice
+// 前置依赖：
+// 1. SO 已同步到 Books（Books_SO_ID 不为空）—— 函数内部会检查，不满足则 skip
+// 2. Account 已同步到 Books
+// 每次执行处理 100 条 Invoice，遇到 rate limit 立即终止
+// 调用：standalone.SyncInvoiceToBooksFromInvoices(invoiceId) 处理单条
+// ============================================================================
+
+void schedule.BatchSyncInvoiceToBooks()
+{
+    startDate = "2026-07-01";
+    successCount = 0;
+    failCount = 0;
+    skipCount = 0;
+    rateLimited = false;
+
+    // COQL 查询有关联 SO 且 Invoice 未同步到 Books 的（通过 SO 的 Books_Invoice_ID 判断）
+    coqlQuery = "select id from Invoices where (Invoice_Date >= '" + startDate + "' and (Sales_Order is not null and Sales_Order.Books_Invoice_ID is null)) order by Invoice_Date asc limit 100";
+    requestParams = Map();
+    requestParams.put("select_query", coqlQuery);
+    coqlResp = invokeurl
+    [
+        url: "https://www.zohoapis.com.au/crm/v8/coql"
+        type: POST
+        parameters: requestParams.toString()
+        connection: "crm"
+    ];
+
+    if(coqlResp == null)
+    {
+        info "[ERR] COQL查询失败";
+        return;
+    }
+
+    errorCode = coqlResp.get("code");
+    if(errorCode != null && errorCode != "SUCCESS" && errorCode != "0")
+    {
+        info "[ERR] COQL Error: " + errorCode + " - " + coqlResp.get("message");
+        return;
+    }
+
+    invoiceDataList = coqlResp.get("data");
+    if(invoiceDataList == null || invoiceDataList.size() == 0)
+    {
+        info "没有符合条件的 Invoice，同步完成";
+        return;
+    }
+
+    info "COQL 返回 " + invoiceDataList.size() + " 条有关联 SO 的 Invoice";
+
+    // 逐条处理
+    for each invRecord in invoiceDataList
+    {
+        invoiceId = invRecord.get("id");
+        if(invoiceId == null || invoiceId == "")
+        {
+            continue;
+        }
+
+        if(rateLimited)
+        {
+            failCount = failCount + 1;
+            continue;
+        }
+
+        try
+        {
+            // 直接调用单条同步函数（内部会检查 SO 是否已同步到 Books）
+            syncResultStr = standalone.SyncInvoiceToBooksFromInvoices(invoiceId.toString());
+            syncResult = syncResultStr.toMap();
+            syncStatus = syncResult.get("status");
+
+            // Rate limit: 立即终止批处理
+            if(syncStatus == "rate_limited")
+            {
+                rateLimited = true;
+                failCount = failCount + 1;
+                info "[RATE_LIMIT] Books API 限流，终止批处理";
+                continue;
+            }
+
+            if(syncStatus == "success")
+            {
+                successCount = successCount + 1;
+            }
+            else if(syncStatus == "skipped")
+            {
+                skipCount = skipCount + 1;
+            }
+            else
+            {
+                failCount = failCount + 1;
+                syncError = syncResult.get("error");
+                info "[ERR] Invoice " + invoiceId + " - " + syncError;
+            }
+        }
+        catch(e)
+        {
+            failCount = failCount + 1;
+            info "[ERR] Exception: Invoice " + invoiceId + " - " + e;
+        }
+    }
+
+    // 输出结果
+    info "===== 本批完成 成功:" + successCount + " 失败:" + failCount + " 跳过:" + skipCount + " =====";
+    if(rateLimited)
+    {
+        info "⚠ Books API 限流 (10,000 calls/day)，请明天配额重置后再执行";
+    }
+    else if(invoiceDataList.size() == 100)
+    {
+        info "还有更多数据待同步，请继续执行";
+    }
+    else
+    {
+        info "全部同步完成";
+    }
+}

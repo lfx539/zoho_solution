@@ -45,6 +45,7 @@ void schedule.BatchSyncSOToBooks()
 	info "COQL 返回 " + dataList.size() + " 条待同步 SO";
 
 	// 逐条处理
+	rateLimited = false;
 	for each soRecord in dataList
 	{
 		soId = soRecord.get("id");
@@ -59,6 +60,17 @@ void schedule.BatchSyncSOToBooks()
 			syncResult = syncResultStr.toMap();
 
 			syncStatus = syncResult.get("status");
+
+			// Rate limit: 立即终止批处理
+			if(syncStatus == "rate_limited")
+			{
+				rateLimited = true;
+				failCount = failCount + 1;
+				remainingCount = dataList.size() - successCount - failCount;
+				info "[RATE_LIMIT] Books API 限流，终止批处理。剩余 " + remainingCount + " 条待下次执行";
+				break;
+			}
+
 			if(syncStatus == "success" || syncStatus == "partial")
 			{
 				successCount = successCount + 1;
@@ -79,7 +91,11 @@ void schedule.BatchSyncSOToBooks()
 
 	// 输出结果
 	info "===== 本批完成 成功:" + successCount + " 失败:" + failCount + " =====";
-	if(dataList.size() == 100)
+	if(rateLimited)
+	{
+		info "⚠ Books API 限流 (10,000 calls/day)，请明天配额重置后再执行";
+	}
+	else if(dataList.size() == 100)
 	{
 		info "还有更多数据待同步，请继续执行";
 	}

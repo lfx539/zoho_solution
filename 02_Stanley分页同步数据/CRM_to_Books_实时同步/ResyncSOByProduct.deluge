@@ -1,0 +1,394 @@
+// ============================================================================
+// 按产品名称搜索/重新同步所有相关 SO
+// 包含两个函数：
+// 1. FindSOsByProduct(productName) — 仅查询受影响的 SO 列表
+// 2. ResyncSOsByProduct(productName) — 查询 + 重新同步到 Books
+// ============================================================================
+
+// ----------------------------------------------------------------------------
+// FindSOsByProduct: 仅查询，不执行同步
+// 输入：productName — CRM 中的产品名称（模糊匹配，如 "TL01"）
+// 返回：Map.toString()，包含匹配的 SO 列表（id / Order_Number / Subject / Books_SO_ID）
+// ----------------------------------------------------------------------------
+
+string standalone.FindSOsByProduct(String productName)
+{
+    result = Map();
+    matchedSOs = List();
+
+    try
+    {
+        if(productName == null || productName == "")
+        {
+            result.put("error", "Product name is required");
+            result.put("status", "failed");
+            return result.toString();
+        }
+
+        info "[FIND] Searching SOs containing product: " + productName;
+
+        // 1. 先找到匹配的 CRM 产品
+        // COQL 不支持 LIKE，用 searchRecords 做模糊匹配
+        products = zoho.crm.searchRecords("Products", "(Product_Name:starts_with:" + productName + ")");
+
+        // 也尝试 contains 搜索（如果 starts_with 没结果）
+        if(products == null || products.size() == 0)
+        {
+            products = zoho.crm.searchRecords("Products", "(Product_Name:equals:" + productName + ")");
+        }
+
+        if(products == null || products.size() == 0)
+        {
+            result.put("status", "success");
+            result.put("message", "No products found matching: " + productName);
+            result.put("matchedSOs", matchedSOs);
+            result.put("count", 0);
+            return result.toString();
+        }
+
+        // 收集匹配的产品 ID 列表
+        productIds = List();
+        productNames = List();
+        for each p in products
+        {
+            pId = p.get("id");
+            pName = p.get("Product_Name");
+            if(pId != null)
+            {
+                productIds.add(pId.toString());
+                productNames.add(pName);
+                info "[FIND] Matched product: " + pName + " (" + pId + ")";
+            }
+        }
+
+        info "[FIND] Found " + productIds.size() + " matching product(s)";
+
+        // 2. 遍历所有已同步到 Books 的 SO，检查是否包含这些产品
+        offset = 0;
+        hasMore = true;
+        totalScanned = 0;
+
+        while(hasMore)
+        {
+            coqlQuery = "select id from Sales_Orders where Date >= '2026-07-01' and Books_SO_ID is not null order by Date asc limit 200 offset " + offset;
+            requestParams = Map();
+            requestParams.put("select_query", coqlQuery);
+            coqlResp = invokeurl
+            [
+                url: "https://www.zohoapis.com.au/crm/v8/coql"
+                type: POST
+                parameters: requestParams.toString()
+                connection: "crm"
+            ];
+
+            if(coqlResp == null)
+            {
+                info "[ERR] COQL query failed at offset " + offset;
+                break;
+            }
+
+            errorCode = coqlResp.get("code");
+            if(errorCode != null && errorCode != "SUCCESS" && errorCode != "0")
+            {
+                info "[ERR] COQL Error: " + errorCode;
+                break;
+            }
+
+            dataList = coqlResp.get("data");
+            if(dataList == null || dataList.size() == 0)
+            {
+                hasMore = false;
+                break;
+            }
+
+            for each soRecord in dataList
+            {
+                soId = soRecord.get("id");
+                if(soId == null || soId == "")
+                {
+                    continue;
+                }
+
+                totalScanned = totalScanned + 1;
+
+                try
+                {
+                    // 获取 SO 完整数据（包含子表）
+                    soResp = invokeurl
+                    [
+                        url: "https://www.zohoapis.com.au/crm/v8/Sales_Orders/" + soId
+                        type: GET
+                        connection: "crm"
+                    ];
+
+                    if(soResp == null || soResp.get("data") == null || soResp.get("data").size() == 0)
+                    {
+                        continue;
+                    }
+
+                    soData = soResp.get("data").get(0);
+                    productDetails = soData.get("Product_Details");
+                    if(productDetails == null || productDetails.size() == 0)
+                    {
+                        productDetails = soData.get("Ordered_Items");
+                    }
+
+                    if(productDetails == null || productDetails.size() == 0)
+                    {
+                        continue;
+                    }
+
+                    // 检查子表中是否包含匹配的产品
+                    for each item in productDetails
+                    {
+                        productObj = item.get("Product_Name");
+                        if(productObj == null)
+                        {
+                            productObj = item.get("product");
+                        }
+                        if(productObj != null)
+                        {
+                            pId = productObj.get("id");
+                            if(pId != null && productIds.contains(pId.toString()))
+                            {
+                                // 找到匹配的 SO，加入结果列表
+                                soInfo = Map();
+                                soInfo.put("id", soId.toString());
+                                soInfo.put("Order_Number", soData.get("Order_Number"));
+                                soInfo.put("Subject", soData.get("Subject"));
+                                soInfo.put("Books_SO_ID", soData.get("Books_SO_ID"));
+                                soInfo.put("matched_product", productObj.get("display_value"));
+                                if(soInfo.get("matched_product") == null)
+                                {
+                                    soInfo.put("matched_product", productObj.get("name"));
+                                }
+                                matchedSOs.add(soInfo);
+                                info "[FIND] Matched SO: " + soData.get("Order_Number") + " (id=" + soId + ") contains " + soInfo.get("matched_product");
+                                break;  // 一个 SO 只记录一次
+                            }
+                        }
+                    }
+                }
+                catch(e)
+                {
+                    info "[WARN] Failed to check SO " + soId + ": " + e;
+                }
+            }
+
+            if(dataList.size() < 200)
+            {
+                hasMore = false;
+            }
+            else
+            {
+                offset = offset + 200;
+            }
+        }
+
+        // 3. 返回结果
+        result.put("productName", productName);
+        result.put("matchedProducts", productNames);
+        result.put("totalScanned", totalScanned);
+        result.put("matchedSOs", matchedSOs);
+        result.put("count", matchedSOs.size());
+        result.put("status", "success");
+
+        info "===== Search complete =====";
+        info "Product: " + productName;
+        info "Matched products: " + productNames;
+        info "SOs scanned: " + totalScanned;
+        info "SOs containing product: " + matchedSOs.size();
+    }
+    catch(e)
+    {
+        errorMsg = "Exception: " + e.toString();
+        info "[ERR] FindSOsByProduct exception: " + errorMsg;
+        result.put("error", errorMsg);
+        result.put("status", "failed");
+    }
+
+    return result.toString();
+}
+
+// ----------------------------------------------------------------------------
+// ResyncSOsByProduct: 查询 + 重新同步
+// 用途：修正产品的 Books_Item_ID 后，重新同步所有包含该产品的 SO 到 Books
+// 输入：productName — CRM 中的产品名称（模糊匹配，如 "TL01"）
+// 返回：Map.toString()，包含 success/locked/failed 列表
+// 注意：如果 Books SO 已被 invoiced/shipped 锁定，更新会失败，归入 lockedList
+// ----------------------------------------------------------------------------
+
+string standalone.ResyncSOsByProduct(String productName)
+{
+    result = Map();
+    successList = List();
+    lockedList = List();
+    failList = List();
+    failDetailMap = Map();  // key: error message, value: List of SO IDs
+
+    try
+    {
+        if(productName == null || productName == "")
+        {
+            result.put("error", "Product name is required");
+            result.put("status", "failed");
+            return result.toString();
+        }
+
+        info "[RESYNC] Resyncing all SOs for product: " + productName;
+
+        // 1. 复用 FindSOsByProduct 的逻辑查找匹配的 SO
+        findResultStr = standalone.FindSOsByProduct(productName);
+        findResult = findResultStr.toMap();
+
+        if(findResult.get("status") != "success")
+        {
+            result.put("error", "Find failed: " + findResult.get("error"));
+            result.put("status", "failed");
+            return result.toString();
+        }
+
+        matchedSOs = findResult.get("matchedSOs");
+        if(matchedSOs == null || matchedSOs.size() == 0)
+        {
+            result.put("status", "success");
+            result.put("message", "No SOs found containing product: " + productName);
+            result.put("count", 0);
+            return result.toString();
+        }
+
+        info "[RESYNC] Found " + matchedSOs.size() + " SOs to resync";
+
+        // 2. 逐条重新同步
+        rateLimited = false;
+        for each soInfo in matchedSOs
+        {
+            soId = soInfo.get("id");
+            if(soId == null || soId == "")
+            {
+                continue;
+            }
+
+            if(rateLimited)
+            {
+                failList.add(soId);
+                if(!failDetailMap.containsKey("rate_limited"))
+                {
+                    failDetailMap.put("rate_limited", List());
+                }
+                failDetailMap.get("rate_limited").add(soId.toString());
+                continue;
+            }
+
+            try
+            {
+                syncResultStr = standalone.SyncSalesOrderToBooks(soId);
+                syncResult = syncResultStr.toMap();
+                syncStatus = syncResult.get("status");
+
+                if(syncStatus == "rate_limited")
+                {
+                    rateLimited = true;
+                    failList.add(soId);
+                    if(!failDetailMap.containsKey("rate_limited"))
+                    {
+                        failDetailMap.put("rate_limited", List());
+                    }
+                    failDetailMap.get("rate_limited").add(soId.toString());
+                    info "[RATE_LIMIT] Stopping at SO " + soId;
+                    continue;
+                }
+
+                if(syncStatus == "success")
+                {
+                    successList.add(soId);
+                    info "[OK] Resynced SO: " + soInfo.get("Order_Number") + " (" + soId + ")";
+                }
+                else
+                {
+                    syncError = syncResult.get("error");
+                    if(syncError == null) { syncError = "unknown error"; }
+                    // 检查是否是锁定错误（invoiced/shipped）
+                    if(syncError.contains("invoiced") || syncError.contains("shipped"))
+                    {
+                        lockedList.add(soId);
+                        info "[LOCKED] SO is locked: " + soInfo.get("Order_Number") + " (" + soId + ")";
+                    }
+                    else
+                    {
+                        failList.add(soId);
+                        // 按错误类型分组
+                        if(!failDetailMap.containsKey(syncError))
+                        {
+                            failDetailMap.put(syncError, List());
+                        }
+                        failDetailMap.get(syncError).add(soId.toString());
+                        info "[ERR] SO " + soInfo.get("Order_Number") + " (" + soId + ") - " + syncError;
+                    }
+                }
+            }
+            catch(e)
+            {
+                errKey = "Exception: " + e.toString();
+                failList.add(soId);
+                if(!failDetailMap.containsKey(errKey))
+                {
+                    failDetailMap.put(errKey, List());
+                }
+                failDetailMap.get(errKey).add(soId.toString());
+                info "[ERR] Exception: SO " + soId + " - " + e;
+            }
+        }
+
+        // 3. 汇总结果
+        result.put("productName", productName);
+        result.put("totalFound", matchedSOs.size());
+        result.put("successCount", successList.size());
+        result.put("lockedCount", lockedList.size());
+        result.put("failCount", failList.size());
+        result.put("successList", successList);
+        result.put("lockedList", lockedList);
+        result.put("failList", failList);
+        result.put("failDetailMap", failDetailMap);
+
+        if(rateLimited)
+        {
+            result.put("status", "partial");
+            result.put("message", "Rate limited. Re-run after quota resets.");
+        }
+        else if(failList.size() > 0 || lockedList.size() > 0)
+        {
+            result.put("status", "partial");
+        }
+        else
+        {
+            result.put("status", "success");
+        }
+
+        info "===== Resync complete for product " + productName + " =====";
+        info "Total: " + matchedSOs.size();
+        info "Success: " + successList.size();
+        info "Locked (invoiced/shipped): " + lockedList.size();
+        if(lockedList.size() > 0)
+        {
+            info "⚠ Locked SO CRM IDs: " + lockedList.toString();
+        }
+        info "Failed: " + failList.size();
+        // 按错误类型汇总打印
+        failKeys = failDetailMap.keys();
+        for each errKey in failKeys
+        {
+            failedIds = failDetailMap.get(errKey);
+            info "  [" + errKey + "] SO IDs: " + failedIds.toString();
+        }
+    }
+    catch(e)
+    {
+        errorMsg = "Exception: " + e.toString();
+        info "[ERR] Resync exception: " + errorMsg;
+        result.put("error", errorMsg);
+        result.put("status", "failed");
+    }
+
+    return result.toString();
+}

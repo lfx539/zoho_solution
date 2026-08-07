@@ -12,508 +12,689 @@
 
 string standalone.SyncSalesOrderToBooks(String soId)
 {
-    result = Map();
-
-    try
-    {
-        // 1. 获取 CRM Sales Order 完整信息（包含子表所有字段）
-        so = zoho.crm.getRecordById("Sales_Orders", soId);
-
-        if(so == null)
-        {
-            result.put("error", "Sales Order not found");
-            return result.toString();
-        }
-
-        soNumber = so.get("Order_Number");
-        if(soNumber == null)
-        {
-            soNumber = so.get("Subject");
-        }
-        info "Sync SO: " + soNumber;
-
-        // 用 CRM API 获取完整记录（zoho.crm.getRecordById 子表字段值可能为 null）
-        soFullResp = invokeurl
-        [
-            url: "https://www.zohoapis.com.au/crm/v8/Sales_Orders/" + soId
-            type: GET
-            connection: "crm"
-        ];
-        if(soFullResp != null && soFullResp.get("data") != null && soFullResp.get("data").size() > 0)
-        {
-            so = soFullResp.get("data").get(0);
-        }
-
-        // ========================================
-        // 步骤 2: 在 Books 中查找是否存在同 reference_number 的 SO
-        // ========================================
-        existingSoId = null;
-
-        // 优先检查 CRM 中的 Books_SO_ID
-        crmBooksSoId = so.get("Books_SO_ID");
-        if(crmBooksSoId != null && crmBooksSoId != "")
-        {
-            existingSoId = crmBooksSoId;
-        }
-
-        // 如果 CRM 中没有，通过 reference_number 在 Books 中搜索
-        if(existingSoId == null && soNumber != null && soNumber != "")
-        {
-            config = standalone.GetBooksConfig().toMap();
-            baseUrl = config.get("baseUrl");
-            orgId = config.get("organizationId");
-
-            searchResp = invokeurl
-            [
-                url: baseUrl + "/salesorders?organization_id=" + orgId + "&reference_number=" + encodeUrl(soNumber)
-                type: GET
-                connection: "books"
-            ];
-
-            if(searchResp.get("code") == 0)
-            {
-                salesorders = searchResp.get("salesorders");
-                if(salesorders != null && salesorders.size() > 0)
-                {
-                    existingSoId = salesorders.get(0).get("salesorder_id");
-                }
-            }
-        }
-
-        // 3. Sync Account 到 Books Customer
-        accountObj = so.get("Account_Name");
-        if(accountObj == null)
-        {
-            errorMsg = "Account is required";
-            result.put("error", errorMsg);
-            result.put("status", "failed");
-            automation.SaveBooksSyncLog("Sales_Orders", soId, "", "Failed", errorMsg);
-            return result.toString();
-        }
-
-        accountId = accountObj.get("id");
-        customerId = standalone.SyncAccountToBooks(accountId);
-
-        if(customerId == null || customerId == "")
-        {
-            errorMsg = "Failed to sync Account to Books";
-            result.put("error", errorMsg);
-            result.put("status", "failed");
-            automation.SaveBooksSyncLog("Sales_Orders", soId, "", "Failed", errorMsg);
-            return result.toString();
-        }
-        if(customerId == "exists")
-        {
-            errorMsg = "Account exists in Books but could not find ID";
-            result.put("error", errorMsg);
-            result.put("status", "failed");
-            automation.SaveBooksSyncLog("Sales_Orders", soId, "", "Failed", errorMsg);
-            return result.toString();
-        }
-
-        // 4. 构建行项目（Line Items）
-        // CRM REST API 返回的子表字段名可能是 Product_Details 或 Ordered_Items
-        productDetails = so.get("Product_Details");
-        if(productDetails == null || productDetails.size() == 0)
-        {
-            productDetails = so.get("Ordered_Items");
-        }
-        if(productDetails == null || productDetails.size() == 0)
-        {
-            errorMsg = "No line items found";
-            result.put("error", errorMsg);
-            result.put("status", "failed");
-            automation.SaveBooksSyncLog("Sales_Orders", soId, "", "Failed", errorMsg);
-            return result.toString();
-        }
-
-        lineItems = List();
-
-        // 获取 Books 配置
-        config = standalone.GetBooksConfig().toMap();
-        baseUrl = config.get("baseUrl");
-        orgId = config.get("organizationId");
-
-        // 获取 Books Tax 列表
-        taxMap = Map();  // key: tax_name, value: tax_id
-        gstTaxId10 = null;  // 10% GST 的 tax_id
-        try
-        {
-            taxResp = invokeurl
-            [
-                url: baseUrl + "/settings/taxes?organization_id=" + orgId
-                type: GET
-                connection: "books"
-            ];
-            if(taxResp != null && taxResp.get("code") == 0)
-            {
-                taxes = taxResp.get("taxes");
-                if(taxes != null)
-                {
-                    for each tax in taxes
-                    {
-                        taxName = tax.get("tax_name");
-                        taxId = tax.get("tax_id");
-                        taxPct = tax.get("tax_percentage");
-                        if(taxName != null && taxId != null)
-                        {
-                            // 同名时保留税率 > 0 的（Books 里有两个 GST: 10% 和 0%）
-                            existingId = taxMap.get(taxName);
-                            if(existingId == null || (taxPct != null && taxPct > 0))
-                            {
-                                taxMap.put(taxName, taxId);
-                            }
-                        }
-                        if(taxPct != null && taxPct == 10 && gstTaxId10 == null)
-                        {
-                            gstTaxId10 = taxId;
-                        }
-                    }
-                }
-            }
-        }
-        catch(e)
-        {
-            info "[ERR] Failed to load taxes: " + e;
-        }
-
-        for each item in productDetails
-        {
-            productObj = item.get("Product_Name");
-            if(productObj == null)
-            {
-                productObj = item.get("product");
-            }
-            if(productObj == null)
-            {
-                continue;
-            }
-
-            productId = productObj.get("id");
-
-            // Sync Product 到 Books Item
-            itemId = standalone.SyncProductToBooks(productId);
-
-            if(itemId == null || itemId == "")
-            {
-                errorMsg = "Failed to sync Product: " + productId;
-                result.put("error", errorMsg);
-                result.put("status", "failed");
-                automation.SaveBooksSyncLog("Sales_Orders", soId, "", "Failed", errorMsg);
-                return result.toString();
-            }
-
-            // 构建行项目
-            lineItem = Map();
-            lineItem.put("item_id", itemId);
-            productName = productObj.get("display_value");
-            if(productName != null && productName != "")
-            {
-                lineItem.put("name", productName);
-            }
-            qty = item.get("Quantity");
-            if(qty == null) { qty = item.get("quantity"); }
-            if(qty != null && qty != "")
-            {
-                lineItem.put("quantity", qty);
-            }
-            else
-            {
-                lineItem.put("quantity", 1);
-            }
-            // rate: CRM 子表字段名可能是 list_price / unit_price / Rate / rate
-            rateVal = item.get("list_price");
-            if(rateVal == null || rateVal == "") { rateVal = item.get("unit_price"); }
-            if(rateVal == null || rateVal == "") { rateVal = item.get("Rate"); }
-            if(rateVal == null || rateVal == "") { rateVal = item.get("rate"); }
-            if(rateVal != null && rateVal != "")
-            {
-                lineItem.put("rate", rateVal);
-            }
-            else
-            {
-                lineItem.put("rate", 0);
-            }
-            desc = item.get("Product_Description");
-            if(desc != null && desc != "")
-            {
-                lineItem.put("description", desc);
-            }
-
-            discount = item.get("Discount");
-            if(discount != null && discount > 0)
-            {
-                lineItem.put("discount_amount", discount);
-            }
-
-            // Unit mapping: CRM "25PKs" -> Books unit_conversion_id
-            crmUnit = item.get("Units");
-            if(crmUnit != null && crmUnit != "")
-            {
-                unitConversionId = null;
-                if(crmUnit.equalsIgnoreCase("Eachs") || crmUnit.equalsIgnoreCase("EA") || crmUnit.equalsIgnoreCase("Each"))
-                {
-                    booksUnitFormat = "Unit";
-                }
-                else
-                {
-                    booksUnitFormat = "Unit(" + crmUnit + ")";
-                }
-                try
-                {
-                    itemDetailResp = invokeurl
-                    [
-                        url: baseUrl + "/items/" + itemId + "?organization_id=" + orgId
-                        type: GET
-                        connection: "books"
-                    ];
-                    if(itemDetailResp != null && itemDetailResp.get("code") == 0)
-                    {
-                        itemDetail = itemDetailResp.get("item");
-                        unitConvs = itemDetail.get("unit_conversions");
-                        if(unitConvs != null)
-                        {
-                            for each uc in unitConvs
-                            {
-                                tu = uc.get("target_unit");
-                                if(tu != null && tu.equalsIgnoreCase(booksUnitFormat))
-                                {
-                                    unitConversionId = uc.get("unit_conversion_id");
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                }
-                catch(e)
-                {
-                    info "[WARN] Failed to get item unit_conversions: " + e;
-                }
-                if(unitConversionId != null)
-                {
-                    lineItem.put("unit_conversion_id", unitConversionId);
-                }
-                else
-                {
-                    // 找不到 unit_conversion_id 时，直接用 unit 字符串
-                    lineItem.put("unit", booksUnitFormat);
-                }
-            }
-
-            // Tax: SO 默认 10% GST
-            if(gstTaxId10 != null)
-            {
-                lineItem.put("tax_id", gstTaxId10);
-            }
-
-            lineItems.add(lineItem);
-        }
-
-        // 5. 构建 Books Sales Order 数据
-        soData = Map();
-        soData.put("customer_id", customerId);
-        soData.put("date", so.get("Created_Time").substring(0, 10));
-        soData.put("reference_number", soNumber);
-        // Salesperson: 从 CRM Owner 读取，fallback 到 SEAN REN
-        salespersonName = "SEAN REN";
-        ownerObj = so.get("Owner");
-        if(ownerObj != null)
-        {
-            ownerName = ownerObj.get("name");
-            if(ownerName != null && ownerName != "")
-            {
-                salespersonName = ownerName;
-            }
-        }
-        soData.put("salesperson_name", salespersonName);
-        soData.put("line_items", lineItems);
-
-        // NetSuite ID >> Books 自定义字段
-        netsuiteId = so.get("Subject");
-        if(netsuiteId != null && netsuiteId != "")
-        {
-            customFieldList = List();
-            customFieldMap = Map();
-            customFieldMap.put("api_name", "cf_netsuite_id");
-            customFieldMap.put("value", netsuiteId);
-            customFieldList.add(customFieldMap);
-            soData.put("custom_fields", customFieldList);
-        }
-
-        // 其他字段（仅非 null 时设置）
-        memo = so.get("Memo");
-        if(memo != null && memo != "")
-        {
-            soData.put("notes", memo);
-        }
-        terms = so.get("Terms_and_Conditions");
-        if(terms != null && terms != "")
-        {
-            soData.put("terms", terms);
-        }
-        shipCost = so.get("Shipping_Cost");
-        if(shipCost != null && shipCost != "")
-        {
-            soData.put("shipping_charge", shipCost);
-            // Shipping Charge Tax 默认 10% GST
-            if(gstTaxId10 != null)
-            {
-                soData.put("shipping_charge_tax_id", gstTaxId10);
-            }
-        }
-        disc = so.get("Discount");
-        if(disc != null && disc != "" && disc != 0)
-        {
-            // CRM Discount 是负数（如 -28.73），转成正数给 Books
-            discVal = disc;
-            if(discVal < 0)
-            {
-                discVal = 0 - discVal;
-            }
-            // 用 discount 而非 adjustment，使 discount 在 GST 计算之前扣除
-            soData.put("discount", discVal);
-            soData.put("discount_type", "entity_level");
-            soData.put("is_discount_before_tax", true);
-        }
-
-        // Shipping Address
-        shippingAddress = Map();
-        addrText = so.get("Shipping_Address");
-        if(addrText != null && addrText.length() > 80)
-        {
-            addrText = addrText.substring(0, 80);
-        }
-        if(addrText != null) { shippingAddress.put("address", addrText); }
-        shipCity = so.get("Shipping_City");
-        if(shipCity != null) { shippingAddress.put("city", shipCity); }
-        shipState = so.get("Shipping_State");
-        if(shipState != null) { shippingAddress.put("state", shipState); }
-        shipZip = so.get("Shipping_Code");
-        if(shipZip != null) { shippingAddress.put("zip", shipZip); }
-        shipCountry = so.get("Shipping_Country");
-        if(shipCountry != null) { shippingAddress.put("country", shipCountry); }
-        soData.put("shipping_address", shippingAddress);
-
-        // Billing Address
-        billingAddress = Map();
-        billAddrText = so.get("Billing_Address");
-        if(billAddrText != null && billAddrText.length() > 80)
-        {
-            billAddrText = billAddrText.substring(0, 80);
-        }
-        if(billAddrText != null) { billingAddress.put("address", billAddrText); }
-        billCity = so.get("Billing_City");
-        if(billCity != null) { billingAddress.put("city", billCity); }
-        billState = so.get("Billing_State");
-        if(billState != null) { billingAddress.put("state", billState); }
-        billZip = so.get("Billing_Code");
-        if(billZip != null) { billingAddress.put("zip", billZip); }
-        billCountry = so.get("Billing_Country");
-        if(billCountry != null) { billingAddress.put("country", billCountry); }
-        soData.put("billing_address", billingAddress);
-
-        // ========================================
-        // 步骤 6: 更新或创建
-        // ========================================
-        if(existingSoId != null)
-        {
-            // 已有 Books SO：执行更新操作
-            response = invokeurl
-            [
-                url: baseUrl + "/salesorders/" + existingSoId + "?organization_id=" + orgId
-                type: PUT
-                parameters: soData.toString()
-                connection: "books"
-            ];
-
-            responseMap = response;
-            if(responseMap.get("code") == 0)
-            {
-                info "[OK] SO updated: " + soNumber;
-
-                updateMap = Map();
-                updateMap.put("Books_SO_ID", existingSoId);
-                updateMap.put("Books_Sync_Status", true);
-                updateResp = zoho.crm.updateRecord("Sales_Orders", soId.toString(), updateMap);
-                info "[DEBUG] updateRecord (update): soId=" + soId + " Books_SO_ID=" + existingSoId + " resp=" + updateResp;
-
-                result.put("soId", existingSoId);
-                result.put("status", "success");
-                result.put("action", "updated");
-
-                automation.SaveBooksSyncLog("Sales_Orders", soId, existingSoId, "Success", "Sales Order updated successfully");
-            }
-            else
-            {
-                errorMsg = responseMap.get("message");
-                info "[ERR] SO update failed: " + errorMsg;
-
-                updateMap = Map();
-                updateMap.put("Books_Sync_Status", false);
-                zoho.crm.updateRecord("Sales_Orders", soId.toString(), updateMap);
-
-                result.put("error", errorMsg);
-                result.put("status", "failed");
-
-                automation.SaveBooksSyncLog("Sales_Orders", soId, "", "Failed", errorMsg);
-            }
-        }
-        else
-        {
-            // 没有 Books SO：执行创建操作
-            response = invokeurl
-            [
-                url: baseUrl + "/salesorders?organization_id=" + orgId
-                type: POST
-                parameters: soData.toString()
-                connection: "books"
-            ];
-
-            responseMap = response;
-            if(responseMap.get("code") == 0)
-            {
-                salesorder = responseMap.get("salesorder");
-                booksSoId = salesorder.get("salesorder_id");
-
-                info "[OK] SO created: " + soNumber + " (Books ID: " + booksSoId + ")";
-
-                updateMap = Map();
-                updateMap.put("Books_SO_ID", booksSoId);
-                updateMap.put("Books_Sync_Status", true);
-                updateResp = zoho.crm.updateRecord("Sales_Orders", soId.toString(), updateMap);
-                info "[DEBUG] updateRecord (create): soId=" + soId + " Books_SO_ID=" + booksSoId + " resp=" + updateResp;
-
-                result.put("soId", booksSoId);
-                result.put("status", "success");
-                result.put("action", "created");
-
-                automation.SaveBooksSyncLog("Sales_Orders", soId, booksSoId, "Success", "Sales Order created successfully");
-            }
-            else
-            {
-                errorMsg = responseMap.get("message");
-                info "[ERR] SO create failed: " + errorMsg;
-
-                updateMap = Map();
-                updateMap.put("Books_Sync_Status", false);
-                zoho.crm.updateRecord("Sales_Orders", soId.toString(), updateMap);
-
-                result.put("error", errorMsg);
-                result.put("status", "failed");
-
-                automation.SaveBooksSyncLog("Sales_Orders", soId, "", "Failed", errorMsg);
-            }
-        }
-    }
-    catch (e)
-    {
-        errorMsg = "Exception: " + e.toString();
-        info "[ERR] SO sync exception: " + errorMsg;
-        result.put("error", errorMsg);
-        result.put("status", "failed");
-
-        automation.SaveBooksSyncLog("Sales_Orders", soId, "", "Failed", errorMsg);
-    }
-
-    return result.toString();
+result = Map();
+try 
+{
+	// 1. 获取 CRM Sales Order 完整信息（包含子表所有字段）
+	so = zoho.crm.getRecordById("Sales_Orders",soId);
+	if(so == null)
+	{
+		result.put("error","Sales Order not found");
+		return result.toString();
+	}
+	soNumber = so.get("Order_Number");
+	if(soNumber == null)
+	{
+		soNumber = so.get("Subject");
+	}
+	info "Sync SO: " + soNumber;
+	// 用 CRM API 获取完整记录（zoho.crm.getRecordById 子表字段值可能为 null）
+	soFullResp = invokeurl
+	[
+		url :"https://www.zohoapis.com.au/crm/v8/Sales_Orders/" + soId
+		type :GET
+		connection:"crm"
+	];
+	if(soFullResp != null && soFullResp.get("data") != null && soFullResp.get("data").size() > 0)
+	{
+		so = soFullResp.get("data").get(0);
+	}
+	// ========================================
+	// 步骤 2: 在 Books 中查找是否存在同 reference_number 的 SO
+	// ========================================
+	existingSoId = null;
+	// 优先检查 CRM 中的 Books_SO_ID
+	crmBooksSoId = so.get("Books_SO_ID");
+	if(crmBooksSoId != null && crmBooksSoId != "")
+	{
+		existingSoId = crmBooksSoId;
+	}
+	// 如果 CRM 中没有，通过 reference_number 在 Books 中搜索
+	if(existingSoId == null && soNumber != null && soNumber != "")
+	{
+		config = standalone.GetBooksConfig().toMap();
+		baseUrl = config.get("baseUrl");
+		orgId = config.get("organizationId");
+		searchResp = invokeurl
+		[
+			url :baseUrl + "/salesorders?organization_id=" + orgId + "&reference_number=" + encodeUrl(soNumber)
+			type :GET
+			connection:"books"
+		];
+		// Rate limit check
+		rlMsg = searchResp.get("message");
+		if(rlMsg != null && (rlMsg.contains("rate limit") || rlMsg.contains("maximum call rate")))
+		{
+			info "[RATE_LIMIT] Books API rate limit during SO search";
+			result.put("error","Books API rate limit exceeded (SO search)");
+			result.put("status","rate_limited");
+			return result.toString();
+		}
+		if(searchResp.get("code") == 0)
+		{
+			salesorders = searchResp.get("salesorders");
+			if(salesorders != null && salesorders.size() > 0)
+			{
+				existingSoId = salesorders.get(0).get("salesorder_id");
+			}
+		}
+	}
+	// 3. Sync Account 到 Books Customer
+	accountObj = so.get("Account_Name");
+	if(accountObj == null)
+	{
+		errorMsg = "Account is required";
+		result.put("error",errorMsg);
+		result.put("status","failed");
+		automation.SaveBooksSyncLog("Sales_Orders",soId,"","Failed",errorMsg);
+		return result.toString();
+	}
+	accountId = accountObj.get("id");
+	customerId = standalone.SyncAccountToBooks(accountId);
+	// Rate limit check from Account sync
+	if(customerId == "rate_limited")
+	{
+		errorMsg = "Books API rate limit exceeded (Account sync)";
+		result.put("error",errorMsg);
+		result.put("status","rate_limited");
+		return result.toString();
+	}
+	if(customerId == null || customerId == "")
+	{
+		errorMsg = "No exact match for Account in Books: " + accountObj.get("name");
+		result.put("error",errorMsg);
+		result.put("status","failed");
+		automation.SaveBooksSyncLog("Sales_Orders",soId,"","Failed",errorMsg);
+		return result.toString();
+	}
+	// 4. 构建行项目（Line Items）
+	// CRM REST API 返回的子表字段名可能是 Product_Details 或 Ordered_Items
+	productDetails = so.get("Product_Details");
+	if(productDetails == null || productDetails.size() == 0)
+	{
+		productDetails = so.get("Ordered_Items");
+	}
+	if(productDetails == null || productDetails.size() == 0)
+	{
+		errorMsg = "No line items found";
+		result.put("error",errorMsg);
+		result.put("status","failed");
+		automation.SaveBooksSyncLog("Sales_Orders",soId,"","Failed",errorMsg);
+		return result.toString();
+	}
+	lineItems = List();
+	// 获取 Books 配置
+	config = standalone.GetBooksConfig().toMap();
+	baseUrl = config.get("baseUrl");
+	orgId = config.get("organizationId");
+	// 获取 Books Tax 列表
+	taxMap = Map();
+	// key: tax_name, value: tax_id
+	gstTaxId10 = null;
+	// 10% GST 的 tax_id
+	try 
+	{
+		taxResp = invokeurl
+		[
+			url :baseUrl + "/settings/taxes?organization_id=" + orgId
+			type :GET
+			connection:"books"
+		];
+		// Rate limit check
+		rlMsg = taxResp.get("message");
+		if(rlMsg != null && (rlMsg.contains("rate limit") || rlMsg.contains("maximum call rate")))
+		{
+			info "[RATE_LIMIT] Books API rate limit during tax fetch";
+			result.put("error","Books API rate limit exceeded (tax)");
+			result.put("status","rate_limited");
+			return result.toString();
+		}
+		if(taxResp != null && taxResp.get("code") == 0)
+		{
+			taxes = taxResp.get("taxes");
+			if(taxes != null)
+			{
+				for each  tax in taxes
+				{
+					taxName = tax.get("tax_name");
+					taxId = tax.get("tax_id");
+					taxPct = tax.get("tax_percentage");
+					if(taxName != null && taxId != null)
+					{
+						// 同名时保留税率 > 0 的（Books 里有两个 GST: 10% 和 0%）
+						existingId = taxMap.get(taxName);
+						if(existingId == null || taxPct != null && taxPct > 0)
+						{
+							taxMap.put(taxName,taxId);
+						}
+					}
+					if(taxPct != null && taxPct == 10 && gstTaxId10 == null)
+					{
+						gstTaxId10 = taxId;
+					}
+				}
+			}
+		}
+	}
+	catch (e)
+	{
+		info "[ERR] Failed to load taxes: " + e;
+	}
+	for each  item in productDetails
+	{
+		productObj = item.get("Product_Name");
+		if(productObj == null)
+		{
+			productObj = item.get("product");
+		}
+		if(productObj == null)
+		{
+			continue;
+		}
+		productId = productObj.get("id");
+		// Sync Product 到 Books Item
+		itemId = standalone.SyncProductToBooks(productId);
+		if(itemId == null || itemId == "")
+		{
+			pName = productObj.get("display_value");
+			if(pName == null)
+			{
+				pName = productObj.get("name");
+			}
+			if(pName == null)
+			{
+				pName = productId;
+			}
+			errorMsg = "No exact match for Product in Books: " + pName;
+			result.put("error",errorMsg);
+			result.put("status","failed");
+			automation.SaveBooksSyncLog("Sales_Orders",soId,"","Failed",errorMsg);
+			return result.toString();
+		}
+		// 构建行项目
+		lineItem = Map();
+		lineItem.put("item_id",itemId);
+		productName = productObj.get("display_value");
+		if(productName != null && productName != "")
+		{
+			lineItem.put("name",productName);
+		}
+		qty = item.get("Quantity");
+		if(qty == null)
+		{
+			qty = item.get("quantity");
+		}
+		if(qty != null && qty != "")
+		{
+			lineItem.put("quantity",qty);
+		}
+		else
+		{
+			lineItem.put("quantity",1);
+		}
+		// rate: CRM 子表字段名可能是 list_price / unit_price / Rate / rate
+		rateVal = item.get("list_price");
+		if(rateVal == null || rateVal == "")
+		{
+			rateVal = item.get("unit_price");
+		}
+		if(rateVal == null || rateVal == "")
+		{
+			rateVal = item.get("Rate");
+		}
+		if(rateVal == null || rateVal == "")
+		{
+			rateVal = item.get("rate");
+		}
+		if(rateVal != null && rateVal != "")
+		{
+			lineItem.put("rate",rateVal);
+		}
+		else
+		{
+			lineItem.put("rate",0);
+		}
+		desc = item.get("Product_Description");
+		if(desc != null && desc != "")
+		{
+			lineItem.put("description",desc);
+		}
+		discount = item.get("Discount");
+		if(discount != null && discount > 0)
+		{
+			lineItem.put("discount_amount",discount);
+		}
+		// Unit mapping: CRM "25PKs" -> Books unit_conversion_id
+		crmUnit = item.get("Units");
+		if(crmUnit != null && crmUnit != "")
+		{
+			unitConversionId = null;
+			if(crmUnit.equalsIgnoreCase("Eachs") || crmUnit.equalsIgnoreCase("EA") || crmUnit.equalsIgnoreCase("Each"))
+			{
+				booksUnitFormat = "Unit";
+			}
+			else
+			{
+				booksUnitFormat = "Unit(" + crmUnit + ")";
+			}
+			try 
+			{
+				itemDetailResp = invokeurl
+				[
+					url :baseUrl + "/items/" + itemId + "?organization_id=" + orgId
+					type :GET
+					connection:"books"
+				];
+				// Rate limit check
+				rlMsg = itemDetailResp.get("message");
+				if(rlMsg != null && (rlMsg.contains("rate limit") || rlMsg.contains("maximum call rate")))
+				{
+					info "[RATE_LIMIT] Books API rate limit during item detail fetch";
+					result.put("error","Books API rate limit exceeded (item detail)");
+					result.put("status","rate_limited");
+					return result.toString();
+				}
+				if(itemDetailResp != null && itemDetailResp.get("code") == 0)
+				{
+					itemDetail = itemDetailResp.get("item");
+					unitConvs = itemDetail.get("unit_conversions");
+					if(unitConvs != null)
+					{
+						for each  uc in unitConvs
+						{
+							tu = uc.get("target_unit");
+							if(tu != null && tu.equalsIgnoreCase(booksUnitFormat))
+							{
+								unitConversionId = uc.get("unit_conversion_id");
+								break;
+							}
+						}
+					}
+				}
+			}
+			catch (e)
+			{
+				info "[WARN] Failed to get item unit_conversions: " + e;
+			}
+			if(unitConversionId != null)
+			{
+				lineItem.put("unit_conversion_id",unitConversionId);
+			}
+			else
+			{
+				// 找不到 unit_conversion_id 时，直接用 unit 字符串
+				lineItem.put("unit",booksUnitFormat);
+			}
+		}
+		// Tax: SO 默认 10% GST
+		if(gstTaxId10 != null)
+		{
+			lineItem.put("tax_id",gstTaxId10);
+		}
+		lineItems.add(lineItem);
+	}
+	// 5. 构建 Books Sales Order 数据
+	soData = Map();
+	soData.put("customer_id",customerId);
+	soData.put("date",so.get("Created_Time").substring(0,10));
+	soData.put("reference_number",soNumber);
+	// Salesperson: 从 CRM Owner 读取，fallback 到 SEAN REN
+	salespersonName = "SEAN REN";
+	ownerObj = so.get("Owner");
+	if(ownerObj != null)
+	{
+		ownerName = ownerObj.get("name");
+		if(ownerName != null && ownerName != "")
+		{
+			salespersonName = ownerName;
+		}
+	}
+	soData.put("salesperson_name",salespersonName);
+	soData.put("line_items",lineItems);
+	// NetSuite ID >> Books 自定义字段
+	netsuiteId = so.get("Subject");
+	if(netsuiteId != null && netsuiteId != "")
+	{
+		customFieldList = List();
+		customFieldMap = Map();
+		customFieldMap.put("api_name","cf_netsuite_id");
+		customFieldMap.put("value",netsuiteId);
+		customFieldList.add(customFieldMap);
+		soData.put("custom_fields",customFieldList);
+	}
+	// 其他字段（仅非 null 时设置）
+	memo = so.get("Memo");
+	if(memo != null && memo != "")
+	{
+		soData.put("notes",memo);
+	}
+	terms = so.get("Terms_and_Conditions");
+	if(terms != null && terms != "")
+	{
+		soData.put("terms",terms);
+	}
+	shipCost = so.get("Shipping_Cost");
+	if(shipCost != null && shipCost != "")
+	{
+		soData.put("shipping_charge",shipCost);
+		// Shipping Charge Tax 默认 10% GST
+		if(gstTaxId10 != null)
+		{
+			soData.put("shipping_charge_tax_id",gstTaxId10);
+		}
+	}
+	disc = so.get("Discount");
+	if(disc != null && disc != "" && disc != 0)
+	{
+		// 计算近似小计，避免 subtotal<=0 时 Books 拒绝 discount
+		approxSubtotal = 0;
+		for each  li in lineItems
+		{
+			liRate = li.get("rate");
+			liQty = li.get("quantity");
+			if(liRate != null && liQty != null)
+			{
+				approxSubtotal = approxSubtotal + liRate * liQty;
+			}
+		}
+		if(approxSubtotal > 0)
+		{
+			// CRM Discount 是负数（如 -28.73），转成正数给 Books
+			discVal = disc;
+			if(discVal < 0)
+			{
+				discVal = 0 - discVal;
+			}
+			// 用 discount 而非 adjustment，使 discount 在 GST 计算之前扣除
+			soData.put("discount",discVal);
+			soData.put("discount_type","entity_level");
+			soData.put("is_discount_before_tax",true);
+		}
+		else
+		{
+			info "[WARN] Skipping discount: subtotal is zero or negative";
+		}
+	}
+	// 获取 Account 详情（用于 Shipping/Billing Address）
+	accountDetail = null;
+	try 
+	{
+		accountDetail = zoho.crm.getRecordById("Accounts",accountId);
+	}
+	catch (e)
+	{
+		info "[WARN] Failed to get Account detail for address: " + e;
+	}
+	// Shipping Address - 优先从 Account 取，fallback 用 SO
+	// 注意：仅在创建时传地址，更新时不传（Books PUT 对 billing_address 校验严格，保留已有地址即可）
+	shippingAddress = Map();
+	if(accountDetail != null)
+	{
+		shipStreet = accountDetail.get("Shipping_Street");
+		if(shipStreet != null && shipStreet != "")
+		{
+			shipStr = shipStreet.toString();
+			if(shipStr.length() > 100)
+			{
+				shipStr = shipStr.substring(0,100);
+			}
+			shippingAddress.put("address",shipStr);
+		}
+		shipCity = accountDetail.get("Shipping_City");
+		if(shipCity != null && shipCity != "")
+		{
+			shippingAddress.put("city",shipCity.toString());
+		}
+		shipState = accountDetail.get("Shipping_State");
+		if(shipState != null && shipState != "")
+		{
+			shippingAddress.put("state",shipState.toString());
+		}
+		shipZip = accountDetail.get("Shipping_Code");
+		if(shipZip != null && shipZip != "")
+		{
+			shippingAddress.put("zip",shipZip.toString());
+		}
+		shipCountry = accountDetail.get("Shipping_Country");
+		if(shipCountry != null && shipCountry != "")
+		{
+			shippingAddress.put("country",shipCountry.toString());
+		}
+	}
+	if(shippingAddress.size() == 0)
+	{
+		// Fallback: 用 SO 的地址
+		shipAddrRaw = so.get("Shipping_Address");
+		if(shipAddrRaw != null)
+		{
+			shipAddrStr = shipAddrRaw.toString();
+			if(shipAddrStr.length() > 100)
+			{
+				shipAddrStr = shipAddrStr.substring(0,100);
+			}
+			shippingAddress.put("address",shipAddrStr);
+		}
+		shipCity = so.get("Shipping_City");
+		if(shipCity != null && shipCity != "")
+		{
+			shippingAddress.put("city",shipCity.toString());
+		}
+		shipState = so.get("Shipping_State");
+		if(shipState != null && shipState != "")
+		{
+			shippingAddress.put("state",shipState.toString());
+		}
+		shipZip = so.get("Shipping_Code");
+		if(shipZip != null && shipZip != "")
+		{
+			shippingAddress.put("zip",shipZip.toString());
+		}
+		shipCountry = so.get("Shipping_Country");
+		if(shipCountry != null && shipCountry != "")
+		{
+			shippingAddress.put("country",shipCountry.toString());
+		}
+	}
+	// Billing Address - 优先从 Account 取，fallback 用 SO
+	billingAddress = Map();
+	if(accountDetail != null)
+	{
+		billStreet = accountDetail.get("Billing_Street");
+		if(billStreet != null && billStreet != "")
+		{
+			billStr = billStreet.toString();
+			if(billStr.length() > 100)
+			{
+				billStr = billStr.substring(0,100);
+			}
+			billingAddress.put("address",billStr);
+		}
+		billCity = accountDetail.get("Billing_City");
+		if(billCity != null && billCity != "")
+		{
+			billingAddress.put("city",billCity.toString());
+		}
+		billState = accountDetail.get("Billing_State");
+		if(billState != null && billState != "")
+		{
+			billingAddress.put("state",billState.toString());
+		}
+		billZip = accountDetail.get("Billing_Code");
+		if(billZip != null && billZip != "")
+		{
+			billingAddress.put("zip",billZip.toString());
+		}
+		billCountry = accountDetail.get("Billing_Country");
+		if(billCountry != null && billCountry != "")
+		{
+			billingAddress.put("country",billCountry.toString());
+		}
+	}
+	if(billingAddress.size() == 0)
+	{
+		// Fallback: 用 SO 的地址
+		billAddrRaw = so.get("Billing_Address");
+		if(billAddrRaw != null)
+		{
+			billAddrStr = billAddrRaw.toString();
+			if(billAddrStr.length() > 100)
+			{
+				billAddrStr = billAddrStr.substring(0,100);
+			}
+			billingAddress.put("address",billAddrStr);
+		}
+		billCity = so.get("Billing_City");
+		if(billCity != null && billCity != "")
+		{
+			billingAddress.put("city",billCity.toString());
+		}
+		billState = so.get("Billing_State");
+		if(billState != null && billState != "")
+		{
+			billingAddress.put("state",billState.toString());
+		}
+		billZip = so.get("Billing_Code");
+		if(billZip != null && billZip != "")
+		{
+			billingAddress.put("zip",billZip.toString());
+		}
+		billCountry = so.get("Billing_Country");
+		if(billCountry != null && billCountry != "")
+		{
+			billingAddress.put("country",billCountry.toString());
+		}
+	}
+	// 仅创建时传地址，更新时不传（避免 Books PUT 对地址格式校验报错）
+	if(existingSoId == null)
+	{
+		if(shippingAddress.size() > 0)
+		{
+			// 			soData.put("shipping_address",shippingAddress);
+		}
+		if(billingAddress.size() > 0)
+		{
+			// 			soData.put("billing_address",billingAddress);
+		}
+		info accountDetail;
+		booksAccountInfo = zoho.books.getRecordsByID("contacts",orgId,accountDetail.get("Books_Customer_ID"),"books");
+		if(booksAccountInfo != null && booksAccountInfo.get("code") == 0)
+		{
+			booksAccountInfoCon = booksAccountInfo.get("contact");
+			booksBillingAdds = booksAccountInfoCon.get("billing_address");
+			if(booksBillingAdds != null)
+			{
+				soData.put("billing_address_id",booksBillingAdds.get("address_id"));
+			}
+			booksShipAdds = booksAccountInfoCon.get("shipping_address");
+			if(booksShipAdds != null)
+			{
+				soData.put("shipping_address_id",booksShipAdds.get("address_id"));
+			}
+		}
+	}
+	soData.put("status",so.get("Status"));
+	// ========================================
+	// 步骤 6: 更新或创建
+	// ========================================
+	if(existingSoId != null)
+	{
+		// 已有 Books SO：执行更新操作
+		response = invokeurl
+		[
+			url :baseUrl + "/salesorders/" + existingSoId + "?organization_id=" + orgId
+			type :PUT
+			parameters:soData.toString()
+			connection:"books"
+		];
+		responseMap = response;
+		if(responseMap.get("code") == 0)
+		{
+			info "[OK] SO updated: " + soNumber;
+			updateMap = Map();
+			updateMap.put("Books_SO_ID",existingSoId);
+			updateMap.put("Books_Sync_Status",true);
+			updateResp = zoho.crm.updateRecord("Sales_Orders",soId.toString(),updateMap);
+			info "[DEBUG] updateRecord (update): soId=" + soId + " Books_SO_ID=" + existingSoId + " resp=" + updateResp;
+			result.put("soId",existingSoId);
+			result.put("status","success");
+			result.put("action","updated");
+			automation.SaveBooksSyncLog("Sales_Orders",soId,existingSoId,"Success","Sales Order updated successfully");
+		}
+		else
+		{
+			errorMsg = responseMap.get("message");
+			// Rate limit check
+			if(errorMsg != null && (errorMsg.contains("rate limit") || errorMsg.contains("maximum call rate")))
+			{
+				info "[RATE_LIMIT] Books API rate limit during SO update";
+				result.put("error","Books API rate limit exceeded (SO update)");
+				result.put("status","rate_limited");
+				return result.toString();
+			}
+			info "[ERR] SO update failed: " + errorMsg;
+			updateMap = Map();
+			updateMap.put("Books_Sync_Status",false);
+			zoho.crm.updateRecord("Sales_Orders",soId.toString(),updateMap);
+			result.put("error",errorMsg);
+			result.put("status","failed");
+			automation.SaveBooksSyncLog("Sales_Orders",soId,"","Failed",errorMsg);
+		}
+	}
+	else
+	{
+		// 没有 Books SO：执行创建操作
+		info soData;
+		response = invokeurl
+		[
+			url :baseUrl + "/salesorders?organization_id=" + orgId
+			type :POST
+			parameters:soData.toString()
+			connection:"books"
+		];
+		responseMap = response;
+		if(responseMap.get("code") == 0)
+		{
+			salesorder = responseMap.get("salesorder");
+			booksSoId = salesorder.get("salesorder_id");
+			info "[OK] SO created: " + soNumber + " (Books ID: " + booksSoId + ")";
+			updateMap = Map();
+			updateMap.put("Books_SO_ID",booksSoId);
+			updateMap.put("Books_Sync_Status",true);
+			updateResp = zoho.crm.updateRecord("Sales_Orders",soId.toString(),updateMap);
+			info "[DEBUG] updateRecord (create): soId=" + soId + " Books_SO_ID=" + booksSoId + " resp=" + updateResp;
+			result.put("soId",booksSoId);
+			result.put("status","success");
+			result.put("action","created");
+			automation.SaveBooksSyncLog("Sales_Orders",soId,booksSoId,"Success","Sales Order created successfully");
+		}
+		else
+		{
+			errorMsg = responseMap.get("message");
+			// Rate limit check
+			if(errorMsg != null && (errorMsg.contains("rate limit") || errorMsg.contains("maximum call rate")))
+			{
+				info "[RATE_LIMIT] Books API rate limit during SO create";
+				result.put("error","Books API rate limit exceeded (SO create)");
+				result.put("status","rate_limited");
+				return result.toString();
+			}
+			info "[ERR] SO create failed: " + errorMsg;
+			updateMap = Map();
+			updateMap.put("Books_Sync_Status",false);
+			zoho.crm.updateRecord("Sales_Orders",soId.toString(),updateMap);
+			result.put("error",errorMsg);
+			result.put("status","failed");
+			automation.SaveBooksSyncLog("Sales_Orders",soId,"","Failed",errorMsg);
+		}
+	}
+}
+catch (e)
+{
+	errorMsg = "Exception: " + e.toString();
+	info "[ERR] SO sync exception: " + errorMsg;
+	result.put("error",errorMsg);
+	result.put("status","failed");
+	automation.SaveBooksSyncLog("Sales_Orders",soId,"","Failed",errorMsg);
+}
+return result.toString();
 }

@@ -1,0 +1,688 @@
+// ============================================================================
+// 从 CRM Invoice 同步 Package + Invoice 到 Books（单条）
+// 用途：给定一个 CRM Invoice ID，查找关联的 SO，
+//       如果 SO 已同步到 Books，则创建 Books Package（标记 shipped）和 Invoice（标记 sent）
+// 与 SyncInvoiceToBooks 的区别：
+// - SyncInvoiceToBooks: 从 SO 触发，rate/日期/金额取自 SO
+// - 本函数: 从 Invoice 触发，rate/日期/金额取自 Invoice（解决 SO 和 Invoice 数据 gap）
+// 前置依赖：
+// 1. SO 已同步到 Books（Books_SO_ID 不为空）
+// 2. Account 已同步到 Books
+// 返回：Map.toString()，包含 soId / packageId / invoiceId / status
+// ============================================================================
+
+string standalone.SyncInvoiceToBooksFromInvoices(String invoiceId)
+{
+    result = Map();
+
+    try
+    {
+        // 1. 获取 Invoice 详情（需要 Sales_Order 关联字段 + Invoiced_Items 的 rate）
+        invoiceResp = invokeurl
+        [
+            url: "https://www.zohoapis.com.au/crm/v8/Invoices/" + invoiceId
+            type: GET
+            connection: "crm"
+        ];
+
+        if(invoiceResp == null || invoiceResp.get("data") == null || invoiceResp.get("data").size() == 0)
+        {
+            result.put("error", "Invoice not found");
+            result.put("status", "failed");
+            return result.toString();
+        }
+
+        invoice = invoiceResp.get("data").get(0);
+        invoiceNo = invoice.get("Invoice_No");
+        if(invoiceNo == null)
+        {
+            invoiceNo = invoice.get("Subject");
+        }
+        info "Sync Invoice to Books (from Invoice): " + invoiceNo;
+
+        // 2. 检查是否有关联的 Sales Order
+        salesOrderObj = invoice.get("Sales_Order");
+        if(salesOrderObj == null)
+        {
+            result.put("error", "Invoice has no linked Sales Order");
+            result.put("status", "skipped");
+            return result.toString();
+        }
+
+        // CRM v8 API lookup 字段可能返回 Map 或 String
+        soId = null;
+        try
+        {
+            soId = salesOrderObj.get("id");
+        }
+        catch(e)
+        {
+            soId = salesOrderObj.toString();
+        }
+
+        if(soId == null || soId == "")
+        {
+            result.put("error", "Invoice SO ID is empty");
+            result.put("status", "skipped");
+            return result.toString();
+        }
+
+        info "[INV2BOOKS] Invoice " + invoiceNo + " linked to SO: " + soId;
+
+        // 3. 获取 CRM SO 信息
+        so = zoho.crm.getRecordById("Sales_Orders", soId.toString());
+        if(so == null)
+        {
+            result.put("error", "Sales Order not found: " + soId);
+            result.put("status", "failed");
+            return result.toString();
+        }
+
+        soNumber = so.get("Order_Number");
+        if(soNumber == null)
+        {
+            soNumber = so.get("Subject");
+        }
+
+        // 4. 检查 Books_SO_ID（SO 是否已同步到 Books）
+        booksSoId = so.get("Books_SO_ID");
+        if(booksSoId == null || booksSoId == "")
+        {
+            result.put("error", "SO not yet synced to Books (Books_SO_ID is empty)");
+            result.put("status", "skipped");
+            return result.toString();
+        }
+
+        // 5. 检查是否已有 Books Invoice 和 Package（全部完成则跳过）
+        booksInvoiceId = so.get("Books_Invoice_ID");
+        booksPackageId = so.get("Books_Package_ID");
+        if(booksInvoiceId != null && booksInvoiceId != "" && booksPackageId != null && booksPackageId != "")
+        {
+            result.put("soId", booksSoId);
+            result.put("packageId", booksPackageId);
+            result.put("invoiceId", booksInvoiceId);
+            result.put("status", "skipped");
+            result.put("action", "exists");
+            info "[SKIP] SO already has Invoice and Package in Books: " + soId;
+            return result.toString();
+        }
+
+        // 6. 获取 customerId
+        accountObj = so.get("Account_Name");
+        if(accountObj == null)
+        {
+            result.put("error", "SO has no Account");
+            result.put("status", "failed");
+            return result.toString();
+        }
+
+        accountId = accountObj.get("id");
+        customerId = standalone.SyncAccountToBooks(accountId);
+
+        // Rate limit check from Account sync
+        if(customerId == "rate_limited")
+        {
+            result.put("error", "Books API rate limit exceeded (Account sync)");
+            result.put("status", "rate_limited");
+            return result.toString();
+        }
+
+        if(customerId == null || customerId == "" || customerId == "exists")
+        {
+            result.put("error", "Failed to get customerId for SO: " + soId);
+            result.put("status", "failed");
+            return result.toString();
+        }
+
+        // 7. 同步 Package（创建 + 标记 shipped，触发库存扣减）
+        packageResultStr = standalone.SyncPackageToBooks(soId.toString(), booksSoId, customerId);
+        packageResult = packageResultStr.toMap();
+        info "[INV2BOOKS] Package result: " + packageResult.get("status");
+
+        // Rate limit 检查
+        if(packageResult.get("status") == "rate_limited")
+        {
+            result.put("error", "Books API rate limit exceeded (Package)");
+            result.put("status", "rate_limited");
+            return result.toString();
+        }
+
+        // ============================================================
+        // 8. 同步 Invoice（自己构建，用 Invoice 的 rate/日期/金额）
+        // 与 SyncInvoiceToBooks 的区别：rate 取自 Invoice 而非 SO
+        // ============================================================
+
+        // 8a. 获取 Books 配置
+        config = standalone.GetBooksConfig().toMap();
+        baseUrl = config.get("baseUrl");
+        orgId = config.get("organizationId");
+
+        // 8b. 从 Books SO 获取详情（获取 line_item_id，用于构建 Invoice 行项目）
+        soDetailResp = invokeurl
+        [
+            url: baseUrl + "/salesorders/" + booksSoId + "?organization_id=" + orgId
+            type: GET
+            connection: "books"
+        ];
+
+        if(soDetailResp == null || soDetailResp.get("code") != 0)
+        {
+            errorMsg = "Failed to fetch Books SO detail";
+            if(soDetailResp != null)
+            {
+                errorMsg = soDetailResp.get("message");
+            }
+            result.put("error", errorMsg);
+            result.put("status", "failed");
+            return result.toString();
+        }
+
+        soDetail = soDetailResp.get("salesorder");
+
+        // 8c. 确认 SO（Package 和 Invoice 需要 SO 处于 confirmed 状态）
+        soStatus = soDetail.get("status");
+        if(soStatus == null || !soStatus.equalsIgnoreCase("confirmed"))
+        {
+            info "[INV2BOOKS] Confirming SO status...";
+            confirmResp = invokeurl
+            [
+                url: baseUrl + "/salesorders/" + booksSoId + "/status/confirmed?organization_id=" + orgId
+                type: POST
+                connection: "books"
+            ];
+            if(confirmResp != null && confirmResp.get("code") == 0)
+            {
+                info "[OK] SO confirmed";
+            }
+            else
+            {
+                confirmErrMsg = "No response";
+                if(confirmResp != null)
+                {
+                    confirmErrMsg = confirmResp.get("message");
+                }
+                info "[WARN] SO confirm failed: " + confirmErrMsg;
+            }
+        }
+
+        // 8d. 检查是否已有关联此 SO 的 Invoice
+        existingInvoiceId = null;
+        soInvoices = soDetail.get("invoices");
+        if(soInvoices != null && soInvoices.size() > 0)
+        {
+            existingInvoiceId = soInvoices.get(0).get("invoice_id");
+            info "[SKIP] Invoice already linked to SO: " + existingInvoiceId;
+        }
+
+        if(existingInvoiceId != null)
+        {
+            // Invoice 已存在，跳过创建，但仍写回 ID
+            result.put("invoiceId", existingInvoiceId);
+            result.put("invoiceStatus", "skipped");
+            info "[INV2BOOKS] Invoice already exists: " + existingInvoiceId;
+        }
+        else
+        {
+            // 8e. 构建 Invoice 行项目：用 so_line_item_id 关联 SO，同时传入 Invoice 的 rate
+            soLineItems = soDetail.get("line_items");
+
+            if(soLineItems == null || soLineItems.size() == 0)
+            {
+                result.put("error", "No line items in Books SO");
+                result.put("status", "failed");
+                return result.toString();
+            }
+
+            // 从 CRM Invoice 的 Invoiced_Items 构建 rate 和 quantity 列表（按行顺序）
+            // 匹配策略：按行顺序一一对应（Invoice 和 SO 行项目通常顺序一致）
+            invoiceRateList = List();
+            invoiceQtyList = List();
+            invoiceItems = invoice.get("Invoiced_Items");
+            if(invoiceItems == null || invoiceItems.size() == 0)
+            {
+                invoiceItems = invoice.get("Product_Details");
+            }
+            if(invoiceItems != null && invoiceItems.size() > 0)
+            {
+                for each invItem in invoiceItems
+                {
+                    // rate 字段名可能是 Rate / rate / list_price / unit_price
+                    itemRate = invItem.get("Rate");
+                    if(itemRate == null || itemRate == "")
+                    {
+                        itemRate = invItem.get("rate");
+                    }
+                    if(itemRate == null || itemRate == "")
+                    {
+                        itemRate = invItem.get("list_price");
+                    }
+                    if(itemRate == null || itemRate == "")
+                    {
+                        itemRate = invItem.get("unit_price");
+                    }
+                    invoiceRateList.add(itemRate);
+
+                    // quantity
+                    itemQty = invItem.get("Quantity");
+                    if(itemQty == null || itemQty == "")
+                    {
+                        itemQty = invItem.get("quantity");
+                    }
+                    invoiceQtyList.add(itemQty);
+                }
+            }
+
+            info "[INV2BOOKS] Invoice has " + invoiceQtyList.size() + " line items, Books SO has " + soLineItems.size() + " line items";
+
+            // 检查 Invoice 和 SO 的行数是否一致
+            if(invoiceQtyList.size() != soLineItems.size())
+            {
+                result.put("error", "Invoice line count (" + invoiceQtyList.size() + ") does not match SO line count (" + soLineItems.size() + "). Sync skipped.");
+                result.put("status", "skipped");
+                automation.SaveBooksSyncLog("Invoice", soId, "", "Skipped", "Invoice and SO line count mismatch: " + invoiceQtyList.size() + " vs " + soLineItems.size());
+                return result.toString();
+            }
+
+            // 逐行对比 quantity，如果不一致则跳过
+            qtyMismatch = false;
+            mismatchDetails = "";
+            checkIdx = 0;
+            for each soLine in soLineItems
+            {
+                soQty = soLine.get("quantity");
+                invQty = invoiceQtyList.get(checkIdx);
+                // 统一转数字比较（可能是字符串或数字）
+                if(soQty != null && invQty != null && soQty.toString() != invQty.toString())
+                {
+                    // 数值比较：用减法判断是否相等（避免类型转换问题）
+                    try
+                    {
+                        diff = soQty - invQty;
+                        if(diff != 0)
+                        {
+                            qtyMismatch = true;
+                            mismatchDetails = "Line " + checkIdx + ": SO qty=" + soQty + ", Invoice qty=" + invQty;
+                            break;
+                        }
+                    }
+                    catch(e2)
+                    {
+                        qtyMismatch = true;
+                        mismatchDetails = "Line " + checkIdx + ": SO qty=" + soQty + ", Invoice qty=" + invQty;
+                        break;
+                    }
+                }
+                checkIdx = checkIdx + 1;
+            }
+
+            if(qtyMismatch)
+            {
+                result.put("error", "Invoice and SO quantity mismatch. " + mismatchDetails + ". Sync skipped.");
+                result.put("status", "skipped");
+                automation.SaveBooksSyncLog("Invoice", soId, "", "Skipped", "Qty mismatch: " + mismatchDetails);
+                info "[SKIP] Qty mismatch: " + mismatchDetails;
+                return result.toString();
+            }
+
+            rateMatchByOrder = true;  // 行数和 qty 都一致，rate 也可以按行匹配
+
+            // 构建行项目列表
+            invoiceLineItems = List();
+            lineIdx = 0;
+            for each soLine in soLineItems
+            {
+                lineItemId = soLine.get("line_item_id");
+                if(lineItemId == null)
+                {
+                    continue;
+                }
+
+                invLine = Map();
+                invLine.put("so_line_item_id", lineItemId);
+                invLine.put("quantity", soLine.get("quantity"));
+
+                // 尝试用 Invoice 的 rate 覆盖 SO 的 rate（按行顺序匹配）
+                if(lineIdx < invoiceRateList.size())
+                {
+                    invRate = invoiceRateList.get(lineIdx);
+                    if(invRate != null && invRate != "")
+                    {
+                        invLine.put("rate", invRate);
+                        info "[INV2BOOKS] Line " + lineIdx + ": using Invoice rate " + invRate;
+                    }
+                }
+
+                invoiceLineItems.add(invLine);
+                lineIdx = lineIdx + 1;
+            }
+
+            if(invoiceLineItems.size() == 0)
+            {
+                result.put("error", "No valid line items for Invoice");
+                result.put("status", "failed");
+                return result.toString();
+            }
+
+            // 8f. 构建 Invoice 数据（用 Invoice 的字段，不用 SO 的）
+            invoiceData = Map();
+            invoiceData.put("customer_id", customerId);
+
+            // 日期：优先用 Invoice_Date，fallback 用 SO 的 Created_Time
+            invoiceDate = invoice.get("Invoice_Date");
+            if(invoiceDate != null && invoiceDate != "")
+            {
+                // Invoice_Date 可能是完整 ISO 格式，截取日期部分
+                if(invoiceDate.toString().length() >= 10)
+                {
+                    invoiceData.put("date", invoiceDate.toString().substring(0, 10));
+                }
+                else
+                {
+                    invoiceData.put("date", invoiceDate.toString());
+                }
+            }
+            else
+            {
+                invoiceData.put("date", so.get("Created_Time").substring(0, 10));
+            }
+
+            invoiceData.put("reference_number", soNumber);
+
+            // Salesperson: 优先用 Invoice Owner，fallback 用 SO Owner
+            salespersonName = "SEAN REN";
+            invOwnerObj = invoice.get("Owner");
+            if(invOwnerObj != null)
+            {
+                invOwnerName = invOwnerObj.get("name");
+                if(invOwnerName != null && invOwnerName != "")
+                {
+                    salespersonName = invOwnerName;
+                }
+            }
+            else
+            {
+                soOwnerObj = so.get("Owner");
+                if(soOwnerObj != null)
+                {
+                    soOwnerName = soOwnerObj.get("name");
+                    if(soOwnerName != null && soOwnerName != "")
+                    {
+                        salespersonName = soOwnerName;
+                    }
+                }
+            }
+            invoiceData.put("salesperson_name", salespersonName);
+
+            invoiceData.put("line_items", invoiceLineItems);
+
+            // NetSuite ID >> custom field
+            netsuiteId = so.get("Subject");
+            if(netsuiteId != null && netsuiteId != "")
+            {
+                customFieldList = List();
+                customFieldMap = Map();
+                customFieldMap.put("api_name", "cf_netsuite_id");
+                customFieldMap.put("value", netsuiteId);
+                customFieldList.add(customFieldMap);
+                invoiceData.put("custom_fields", customFieldList);
+            }
+
+            // Memo: 优先用 Invoice 的，fallback 用 SO 的
+            memo = invoice.get("Memo");
+            if(memo == null || memo == "")
+            {
+                memo = invoice.get("Memo_Long");
+            }
+            if(memo == null || memo == "")
+            {
+                memo = so.get("Memo");
+            }
+            if(memo != null && memo != "")
+            {
+                invoiceData.put("notes", memo);
+            }
+
+            // Terms
+            terms = so.get("Terms_and_Conditions");
+            if(terms != null && terms != "")
+            {
+                invoiceData.put("terms", terms);
+            }
+
+            // Shipping charge: 优先用 Invoice 的
+            shipCost = invoice.get("Shipping_Cost");
+            if(shipCost == null || shipCost == "")
+            {
+                shipCost = so.get("Shipping_Cost");
+            }
+            if(shipCost != null && shipCost != "")
+            {
+                invoiceData.put("shipping_charge", shipCost);
+            }
+
+            // Discount: 优先用 Invoice 的
+            disc = invoice.get("Discount_Total");
+            if(disc == null || disc == "")
+            {
+                disc = so.get("Discount");
+            }
+            if(disc != null && disc != "" && disc != 0)
+            {
+                discVal = disc;
+                if(discVal < 0)
+                {
+                    discVal = 0 - discVal;
+                }
+                invoiceData.put("discount", discVal);
+                invoiceData.put("discount_type", "entity_level");
+                invoiceData.put("is_discount_before_tax", true);
+            }
+
+            // 8g. 用 fromsalesorder 端点创建 Invoice（rate 会继承 SO，下一步覆盖）
+            createResp = invokeurl
+            [
+                url: baseUrl + "/invoices/fromsalesorder?salesorder_id=" + booksSoId + "&organization_id=" + orgId
+                type: POST
+                parameters: invoiceData.toString()
+                connection: "books"
+            ];
+
+            if(createResp == null || createResp.get("code") != 0)
+            {
+                errorMsg = "No response";
+                if(createResp != null)
+                {
+                    errorMsg = createResp.get("message");
+                }
+                info "[ERR] Invoice create failed: " + errorMsg;
+                result.put("error", errorMsg);
+                result.put("status", "failed");
+                automation.SaveBooksSyncLog("Invoice", soId, "", "Failed", errorMsg);
+                return result.toString();
+            }
+
+            invoiceObj = createResp.get("invoice");
+            if(invoiceObj == null)
+            {
+                existingInvoiceId = createResp.get("invoice_id");
+            }
+            else
+            {
+                existingInvoiceId = invoiceObj.get("invoice_id");
+            }
+            info "[OK] Invoice created from SO: " + existingInvoiceId;
+
+            // 8h. 用 Invoice 的 rate 覆盖（fromsalesorder 不支持 rate 覆盖，需二次更新）
+            if(rateMatchByOrder && invoiceRateList.size() > 0)
+            {
+                // 获取刚创建的 Invoice 详情，拿到 line_item_id
+                invDetailResp = invokeurl
+                [
+                    url: baseUrl + "/invoices/" + existingInvoiceId + "?organization_id=" + orgId
+                    type: GET
+                    connection: "books"
+                ];
+
+                if(invDetailResp != null && invDetailResp.get("code") == 0)
+                {
+                    invDetail = invDetailResp.get("invoice");
+                    invLineItems = invDetail.get("line_items");
+
+                    if(invLineItems != null && invLineItems.size() > 0)
+                    {
+                        updateLineItems = List();
+                        updateIdx = 0;
+                        for each invLineItem in invLineItems
+                        {
+                            updateLine = Map();
+                            updateLine.put("line_item_id", invLineItem.get("line_item_id"));
+
+                            // 覆盖 rate
+                            if(updateIdx < invoiceRateList.size())
+                            {
+                                invRate = invoiceRateList.get(updateIdx);
+                                if(invRate != null && invRate != "")
+                                {
+                                    updateLine.put("rate", invRate);
+                                    info "[INV2BOOKS] Updating line " + updateIdx + " rate to " + invRate;
+                                }
+                            }
+
+                            updateLineItems.add(updateLine);
+                            updateIdx = updateIdx + 1;
+                        }
+
+                        // PUT 更新 Invoice
+                        updateData = Map();
+                        updateData.put("line_items", updateLineItems);
+
+                        // 同时更新日期、折扣、运费等 Invoice 字段
+                        invoiceDate = invoice.get("Invoice_Date");
+                        if(invoiceDate != null && invoiceDate != "")
+                        {
+                            if(invoiceDate.toString().length() >= 10)
+                            {
+                                updateData.put("date", invoiceDate.toString().substring(0, 10));
+                            }
+                            else
+                            {
+                                updateData.put("date", invoiceDate.toString());
+                            }
+                        }
+
+                        shipCost = invoice.get("Shipping_Cost");
+                        if(shipCost != null && shipCost != "")
+                        {
+                            updateData.put("shipping_charge", shipCost);
+                        }
+
+                        disc = invoice.get("Discount_Total");
+                        if(disc != null && disc != "" && disc != 0)
+                        {
+                            discVal = disc;
+                            if(discVal < 0)
+                            {
+                                discVal = 0 - discVal;
+                            }
+                            updateData.put("discount", discVal);
+                            updateData.put("discount_type", "entity_level");
+                            updateData.put("is_discount_before_tax", true);
+                        }
+
+                        updateResp = invokeurl
+                        [
+                            url: baseUrl + "/invoices/" + existingInvoiceId + "?organization_id=" + orgId
+                            type: PUT
+                            parameters: updateData.toString()
+                            connection: "books"
+                        ];
+
+                        if(updateResp != null && updateResp.get("code") == 0)
+                        {
+                            info "[OK] Invoice rates updated with Invoice data";
+                        }
+                        else
+                        {
+                            updateErrMsg = "No response";
+                            if(updateResp != null)
+                            {
+                                updateErrMsg = updateResp.get("message");
+                            }
+                            info "[WARN] Invoice rate update failed: " + updateErrMsg;
+                        }
+                    }
+                }
+            }
+
+            // 8i. 标记 Invoice 为 sent
+            sentResp = invokeurl
+            [
+                url: baseUrl + "/invoices/" + existingInvoiceId + "/status/sent?organization_id=" + orgId
+                type: POST
+                connection: "books"
+            ];
+
+            if(sentResp != null && sentResp.get("code") == 0)
+            {
+                info "[OK] Invoice marked as sent";
+            }
+            else
+            {
+                sentErrMsg = "No response";
+                if(sentResp != null)
+                {
+                    sentErrMsg = sentResp.get("message");
+                }
+                info "[WARN] Invoice mark sent failed: " + sentErrMsg;
+            }
+
+            automation.SaveBooksSyncLog("Invoice", soId, existingInvoiceId, "Success", "Invoice created from SO with Invoice rates updated and marked sent");
+
+            result.put("invoiceId", existingInvoiceId);
+            result.put("invoiceStatus", "success");
+        }
+
+        // 9. 写回 Books ID 到 CRM SO
+        booksUpdateMap = Map();
+        if(packageResult.get("packageId") != null && packageResult.get("packageId") != "")
+        {
+            booksUpdateMap.put("Books_Package_ID", packageResult.get("packageId"));
+        }
+        if(existingInvoiceId != null && existingInvoiceId != "")
+        {
+            booksUpdateMap.put("Books_Invoice_ID", existingInvoiceId);
+        }
+        if(booksUpdateMap.size() > 0)
+        {
+            zoho.crm.updateRecord("Sales_Orders", soId.toString(), booksUpdateMap);
+            info "[OK] Updated CRM SO with Books IDs: " + soId;
+        }
+
+        // 10. 汇总结果
+        result.put("soId", booksSoId);
+        result.put("packageId", packageResult.get("packageId"));
+        result.put("packageStatus", packageResult.get("status"));
+
+        pkgStatus = packageResult.get("status");
+        invStatus = result.get("invoiceStatus");
+        if((pkgStatus == "success" || pkgStatus == "skipped") && (invStatus == "success" || invStatus == "skipped"))
+        {
+            result.put("status", "success");
+            info "[OK] Invoice to Books sync complete: SO=" + booksSoId + " PKG=" + packageResult.get("packageId") + " INV=" + existingInvoiceId;
+        }
+        else
+        {
+            result.put("status", "partial");
+            info "[WARN] Partial sync: PKG=" + pkgStatus + " INV=" + invStatus;
+        }
+    }
+    catch(e)
+    {
+        errorMsg = "Exception: " + e.toString();
+        info "[ERR] Invoice to Books sync exception: " + errorMsg;
+        result.put("error", errorMsg);
+        result.put("status", "failed");
+    }
+
+    return result.toString();
+}

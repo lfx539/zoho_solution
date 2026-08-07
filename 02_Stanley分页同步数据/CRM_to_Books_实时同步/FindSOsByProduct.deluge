@@ -1,0 +1,102 @@
+// FindSOsByProduct: find all SOs containing a product (read-only, no sync)
+// Input: productName (exact match, case-insensitive)
+// Condition: Books_SO_ID is not null + Product_Name matches in subform
+// Output: list of SOs (id, Order_Number, Subject, Books_SO_ID)
+// Uses zoho.crm.getRecords which returns subform data in bulk
+
+string standalone.FindSOsByProduct(String productName)
+{
+    result = Map();
+    matchedSOs = List();
+
+    try
+    {
+        // Use zoho.crm.getRecords - returns 200 records per page with subform data
+        pageList = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20};
+
+        for each pageNum in pageList
+        {
+            soList = zoho.crm.getRecords("Sales_Orders", pageNum, 200, {"Date": "2026-07-01"});
+
+            if(soList == null || soList.size() == 0)
+            {
+                break;
+            }
+
+            info "[FIND] Page " + pageNum + ": " + soList.size() + " SOs";
+
+            for each soData in soList
+            {
+                // Skip SOs not synced to Books
+                booksSoId = soData.get("Books_SO_ID");
+                if(booksSoId == null || booksSoId == "")
+                {
+                    continue;
+                }
+
+                // Get subform
+                productDetails = soData.get("Product_Details");
+                if(productDetails == null || productDetails.size() == 0)
+                {
+                    productDetails = soData.get("Ordered_Items");
+                }
+
+                if(productDetails == null || productDetails.size() == 0)
+                {
+                    continue;
+                }
+
+                // Match product name (case-insensitive)
+                for each item in productDetails
+                {
+                    productObj = item.get("Product_Name");
+                    if(productObj == null)
+                    {
+                        productObj = item.get("product");
+                    }
+                    if(productObj != null)
+                    {
+                        pName = productObj.get("display_value");
+                        if(pName == null || pName == "")
+                        {
+                            pName = productObj.get("name");
+                        }
+                        if(pName != null && pName.equalsIgnoreCase(productName))
+                        {
+                            soInfo = Map();
+                            soInfo.put("id", soData.get("id"));
+                            soInfo.put("Order_Number", soData.get("Order_Number"));
+                            soInfo.put("Subject", soData.get("Subject"));
+                            soInfo.put("Books_SO_ID", booksSoId);
+                            matchedSOs.add(soInfo);
+                            break;
+                        }
+                    }
+                }
+            }
+
+            // Last page reached
+            if(soList.size() < 200)
+            {
+                break;
+            }
+        }
+
+        // Return results
+        result.put("productName", productName);
+        result.put("totalFound", matchedSOs.size());
+        result.put("soList", matchedSOs);
+        result.put("status", "success");
+
+        info "[FIND] Found " + matchedSOs.size() + " SOs containing product: " + productName;
+    }
+    catch(e)
+    {
+        errorMsg = "Exception: " + e.toString();
+        info "[ERR] Find exception: " + errorMsg;
+        result.put("error", errorMsg);
+        result.put("status", "failed");
+    }
+
+    return result.toString();
+}

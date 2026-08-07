@@ -42,17 +42,16 @@ void automation.SaveBooksSyncLog(String module, String crmId, String booksId, St
     try
     {
         logData = Map();
-        logData.put("Name", module + "_Sync_" + zoho.currenttime.toString());
+        logData.put("Name", module + " - " + crmId);
         logData.put("Module", module);
         logData.put("CRM_Record_ID", crmId);
         logData.put("Books_Record_ID", booksId);
         logData.put("Sync_Status", status);  // Success / Failed
         logData.put("Error_Message", message);
-        logData.put("Sync_Time", zoho.currenttime);
 
         // 创建日志记录
-        zoho.crm.createRecord("BooksSyncLogs", logData);
-        info "[OK] Log saved: " + module + " - " + status;
+        createResp = zoho.crm.createRecord("BooksSyncLogs", logData);
+        info "[DEBUG] SaveBooksSyncLog resp: " + createResp;
     }
     catch (e)
     {

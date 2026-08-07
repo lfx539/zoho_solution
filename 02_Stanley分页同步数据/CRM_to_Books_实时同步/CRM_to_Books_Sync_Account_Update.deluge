@@ -1,6 +1,9 @@
 // ============================================================================
-// Sync CRM Account to Books Customer
-// Logic: Find by CRM ID -> traversal -> create (handle already exists)
+// Sync Account 到 Books（只查找，不创建不更新）
+// 逻辑：
+// 1. CRM 已有 Books_Customer_ID → 直接返回
+// 2. Books 中按 Account Name 精确匹配 Customer Name → 返回 ID + 回写 CRM
+// 3. 没有精确匹配 → 返回 null（SO 将跳过）
 // ============================================================================
 
 string standalone.SyncAccountToBooks(accountId)
@@ -15,163 +18,62 @@ string standalone.SyncAccountToBooks(accountId)
     info "========================================";
     info "Sync Account: " + accountName;
 
-    // Step 1: Find existing Customer in Books
-    // Priority: 1) CRM Books_Customer_ID  2) Traverse contacts
-    existingCustomerId = null;
-
-    // Priority 1: CRM Books_Customer_ID
+    // Step 1: CRM 已有 Books_Customer_ID → 直接返回
     crmBooksId = account.get("Books_Customer_ID");
     info "[DEBUG] CRM Books_Customer_ID = '" + crmBooksId + "'";
     if(crmBooksId != null && crmBooksId != "")
     {
-        existingCustomerId = crmBooksId;
-        info "Found in CRM: " + existingCustomerId;
+        info ">> Skip (already synced): " + crmBooksId;
+        return crmBooksId;
     }
 
-    // Priority 2: Search by email in Books
-    accountEmail = account.get("Email");
-    if(existingCustomerId == null && accountEmail != null && accountEmail != "")
+    // Step 2: 按 Account Name 精确匹配
+    existingCustomerId = null;
+    if(accountName != null && accountName != "")
     {
         searchResp = invokeurl
         [
-            url: baseUrl + "/contacts?organization_id=" + orgId + "&email_contains=" + encodeUrl(accountEmail)
+            url: baseUrl + "/contacts?organization_id=" + orgId + "&search_text=" + encodeUrl(accountName)
             type: GET
             connection: "books"
         ];
+        // Rate limit check
+        respMsg = searchResp.get("message");
+        if(respMsg != null && (respMsg.contains("rate limit") || respMsg.contains("maximum call rate")))
+        {
+            info "[RATE_LIMIT] Books API rate limit during account search";
+            return "rate_limited";
+        }
         if(searchResp.get("code") == 0)
         {
             contacts = searchResp.get("contacts");
             if(contacts != null && contacts.size() > 0)
             {
-                existingCustomerId = contacts.get(0).get("contact_id");
-                info "Found by email: " + existingCustomerId;
+                for each contact in contacts
+                {
+                    contactName = contact.get("contact_name");
+                    // 名称精确匹配才认
+                    if(contactName != null && contactName.equalsIgnoreCase(accountName))
+                    {
+                        existingCustomerId = contact.get("contact_id");
+                        info ">> Found by name (exact): " + existingCustomerId;
+                        break;
+                    }
+                }
             }
         }
     }
 
-    // Priority 3: Search by display name
-    searchName = accountName;
-    if(accountName != null && accountName.contains("@"))
-    {
-        searchName = accountName.substring(0, accountName.indexOf("@"));
-    }
-    if(existingCustomerId == null && searchName != null && searchName != "")
-    {
-        searchResp = invokeurl
-        [
-            url: baseUrl + "/contacts?organization_id=" + orgId + "&search_text=" + encodeUrl(searchName)
-            type: GET
-            connection: "books"
-        ];
-        if(searchResp.get("code") == 0)
-        {
-            contacts = searchResp.get("contacts");
-            if(contacts != null && contacts.size() > 0)
-            {
-                existingCustomerId = contacts.get(0).get("contact_id");
-                info "Found by name: " + existingCustomerId;
-            }
-        }
-    }
-
-    // Step 2: Build Customer data
-    customerData = Map();
-
-    customerData.put("contact_name", accountName);
-    customerData.put("company_name", accountName);
-    customerData.put("contact_type", "customer");
-    customerData.put("email", account.get("Email"));
-    customerData.put("phone", account.get("Phone"));
-    customerData.put("website", account.get("Website"));
-    customerData.put("notes", account.get("Description"));
-
-    // Billing Address
-    billingAddress = Map();
-    billingAddress.put("address", account.get("Billing_Street"));
-    billingAddress.put("city", account.get("Billing_City"));
-    billingAddress.put("state", account.get("Billing_State"));
-    billingAddress.put("zip", account.get("Billing_Code"));
-    billingAddress.put("country", account.get("Billing_Country"));
-    customerData.put("billing_address", billingAddress);
-
-    // Shipping Address
-    shippingAddress = Map();
-    shippingAddress.put("address", account.get("Shipping_Street"));
-    shippingAddress.put("city", account.get("Shipping_City"));
-    shippingAddress.put("state", account.get("Shipping_State"));
-    shippingAddress.put("zip", account.get("Shipping_Code"));
-    shippingAddress.put("country", account.get("Shipping_Country"));
-    customerData.put("shipping_address", shippingAddress);
-
-    info "[DEBUG] customerData = " + customerData.toString();
-
-    // Step 3: Update or Create
+    // 匹配到 → 回写 CRM + 返回 ID
     if(existingCustomerId != null)
     {
-        // Update existing Customer
-        info "Update mode";
-        response = invokeurl
-        [
-            url: baseUrl + "/contacts/" + existingCustomerId + "?organization_id=" + orgId
-            type: PUT
-            parameters: customerData.toString()
-            connection: "books"
-        ];
-
-        responseMap = response;
-        if(responseMap.get("code") == 0)
-        {
-            info "Account updated: " + accountName;
-
-            updateMap = Map();
-            updateMap.put("Books_Customer_ID", existingCustomerId);
-            zoho.crm.updateRecord("Accounts", accountId.toString(), updateMap);
-
-            return existingCustomerId;
-        }
-        else
-        {
-            info "Account update failed: " + responseMap.get("message");
-            return null;
-        }
+        updateMap = Map();
+        updateMap.put("Books_Customer_ID", existingCustomerId);
+        zoho.crm.updateRecord("Accounts", accountId.toString(), updateMap);
+        return existingCustomerId;
     }
-    else
-    {
-        // Create new Customer
-        info "Create mode";
-        response = invokeurl
-        [
-            url: baseUrl + "/contacts?organization_id=" + orgId
-            type: POST
-            parameters: customerData.toString()
-            connection: "books"
-        ];
 
-        responseMap = response;
-        if(responseMap.get("code") == 0)
-        {
-            contact = responseMap.get("contact");
-            contactId = contact.get("contact_id");
-
-            info "Account created: " + accountName + " (Books ID: " + contactId + ")";
-
-            updateMap = Map();
-            updateMap.put("Books_Customer_ID", contactId);
-            zoho.crm.updateRecord("Accounts", accountId.toString(), updateMap);
-
-            return contactId;
-        }
-        else
-        {
-            errorMsg = responseMap.get("message");
-            // If already exists but search didn't find it, skip
-            if(errorMsg != null && errorMsg.contains("already exists"))
-            {
-                info "Account already exists in Books, skip: " + accountName;
-                return "exists";
-            }
-            info "Account create failed: " + errorMsg;
-            return null;
-        }
-    }
+    // 没有精确匹配 → 返回 null，SO 将跳过此客户
+    info ">> No exact match in Books for: " + accountName;
+    return null;
 }
